@@ -1,10 +1,12 @@
-import { useRef, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { AdminNav } from '../components/admin/AdminNav.jsx'
 import { AdminTeamScoreboard } from '../components/admin/AdminTeamScoreboard.jsx'
 import { BuzzerStatusPanel } from '../components/admin/BuzzerStatusPanel.jsx'
 import { DevTestingPanel } from '../components/admin/DevTestingPanel.jsx'
-import { MusicPlayerPlaceholder } from '../components/admin/MusicPlayerPlaceholder.jsx'
+import { AdminMediaPanel } from '../components/media/AdminMediaPanel.jsx'
 import { RoundQuestionPanel } from '../components/admin/RoundQuestionPanel.jsx'
+import { RoundRulesSummary } from '../components/rounds/RoundRulesSummary.jsx'
 import { Badge } from '../components/common/Badge.jsx'
 import { Button } from '../components/common/Button.jsx'
 import { InlineAlert } from '../components/common/InlineAlert.jsx'
@@ -37,6 +39,11 @@ export function AdminPage({ embedded = false }) {
   const fullscreenActive = useFullscreenActive()
   const adminRootRef = useRef(null)
   const [projectorUrlHint, setProjectorUrlHint] = useState(null)
+
+  const selectedLibraryRound = useMemo(
+    () => state.roundLibrary?.find((r) => r.id === state.selectedRoundId) ?? null,
+    [state.roundLibrary, state.selectedRoundId],
+  )
 
   const handleOpenProjector = () => {
     const { blocked, url } = openProjectorWindow()
@@ -199,6 +206,19 @@ export function AdminPage({ embedded = false }) {
           </section>
 
           <div className="flex flex-col gap-2 lg:col-span-5">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center justify-between gap-1">
+                <p className="text-[11px] text-slate-500">Library round (rules)</p>
+                <Link to="/rounds">
+                  <Button size="sm" variant="ghost">Round Library</Button>
+                </Link>
+              </div>
+              <RoundRulesSummary
+                round={selectedLibraryRound}
+                selected
+                compact={!selectedLibraryRound}
+              />
+            </div>
             <RoundQuestionPanel
               stage={state.stage}
               round={state.round}
@@ -212,7 +232,7 @@ export function AdminPage({ embedded = false }) {
               onSimulateBuzzer={handleSimulateBuzzer}
               onClearBuzzer={handleClearBuzzer}
             />
-            <MusicPlayerPlaceholder musicPlayer={state.musicPlayer} />
+            <AdminMediaPanel onNotify={notify} />
           </div>
         </div>
       </main>

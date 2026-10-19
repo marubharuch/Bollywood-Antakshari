@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { ProjectorMediaDisplay } from '../components/projector/ProjectorMediaDisplay.jsx'
 import { ProjectorBuzzerBanner } from '../components/projector/ProjectorBuzzerBanner.jsx'
 import { ProjectorQuestion } from '../components/projector/ProjectorQuestion.jsx'
 import { ProjectorScoreboard } from '../components/projector/ProjectorScoreboard.jsx'
@@ -72,8 +73,14 @@ export function ProjectorPage({ embedded = false, showPresentationControls = tru
           <ProjectorScoreboard teams={state.teams} />
         </section>
 
+        <ProjectorMediaDisplay />
+
         <section className="mb-6">
-          <ProjectorQuestion question={state.question} />
+          <ProjectorQuestion
+            question={state.question}
+            hideAnswer={Boolean(state.mediaPlayback?.hideAnswerOnProjector)}
+            hidePrompt={Boolean(state.mediaPlayback?.hideTitleOnProjector)}
+          />
         </section>
 
         <footer>

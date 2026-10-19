@@ -7,6 +7,8 @@ export function AdminNav({ embedded = false }) {
 
   const onControl = location.pathname === '/' || location.pathname === '/admin'
   const onTeams = location.pathname === '/teams'
+  const onRounds = location.pathname === '/rounds'
+  const onMedia = location.pathname === '/media'
 
   return (
     <nav
@@ -20,7 +22,17 @@ export function AdminNav({ embedded = false }) {
       </Link>
       <Link to="/teams">
         <Button size="sm" variant={onTeams ? 'secondary' : 'ghost'} pressed={onTeams}>
-          Manage Teams
+          Teams
+        </Button>
+      </Link>
+      <Link to="/rounds">
+        <Button size="sm" variant={onRounds ? 'secondary' : 'ghost'} pressed={onRounds}>
+          Rounds
+        </Button>
+      </Link>
+      <Link to="/media">
+        <Button size="sm" variant={onMedia ? 'secondary' : 'ghost'} pressed={onMedia}>
+          Media
         </Button>
       </Link>
     </nav>

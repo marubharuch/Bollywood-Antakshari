@@ -1,3 +1,11 @@
+import {
+  normalizeMediaLibrary,
+  normalizeMediaPlayback,
+} from '../features/media/mediaModel.js'
+import {
+  EXAMPLE_ROUND_TEMPLATES,
+  normalizeRoundLibrary,
+} from '../features/rounds/roundModel.js'
 import { normalizeTeam, normalizeTeamsList } from '../features/tournament/teamModel.js'
 
 /** @typedef {'idle' | 'demo' | 'live' | 'paused'} EventStatus */
@@ -31,11 +39,10 @@ export function createInitialGameState(overrides = {}) {
       teamName: null,
     },
     teams: SAMPLE_TEAMS.map((team, index) => normalizeTeam(team, index)),
-    musicPlayer: {
-      status: 'placeholder',
-      label: 'Music player — Phase 2',
-      trackName: null,
-    },
+    roundLibrary: normalizeRoundLibrary(null, EXAMPLE_ROUND_TEMPLATES),
+    selectedRoundId: null,
+    mediaLibrary: [],
+    mediaPlayback: normalizeMediaPlayback(),
     updatedAt: Date.now(),
     ...overrides,
   }
@@ -53,13 +60,27 @@ export function normalizeGameState(raw) {
     return base
   }
 
+  const hasRoundLibrary = Object.prototype.hasOwnProperty.call(raw, 'roundLibrary')
+  const roundLibrary = hasRoundLibrary
+    ? normalizeRoundLibrary(raw.roundLibrary, [])
+    : normalizeRoundLibrary(null, EXAMPLE_ROUND_TEMPLATES)
+
+  let selectedRoundId =
+    typeof raw.selectedRoundId === 'string' ? raw.selectedRoundId : null
+  if (selectedRoundId && !roundLibrary.some((r) => r.id === selectedRoundId)) {
+    selectedRoundId = null
+  }
+
   return {
     ...base,
     ...raw,
     question: { ...base.question, ...(raw.question ?? {}) },
     buzzer: { ...base.buzzer, ...(raw.buzzer ?? {}) },
-    musicPlayer: { ...base.musicPlayer, ...(raw.musicPlayer ?? {}) },
     teams: normalizeTeamsList(raw.teams, base.teams),
+    roundLibrary,
+    selectedRoundId,
+    mediaLibrary: normalizeMediaLibrary(raw.mediaLibrary),
+    mediaPlayback: normalizeMediaPlayback(raw.mediaPlayback),
     updatedAt: raw.updatedAt ?? Date.now(),
   }
 }
