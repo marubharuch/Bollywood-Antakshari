@@ -29,7 +29,16 @@ export const ProjectorMediaDisplay = memo(function ProjectorMediaDisplay() {
     item &&
     (playback?.status === 'playing' || playback?.status === 'paused')
 
-  if (!playback?.mediaId || !item) return null
+  if (!playback?.mediaId) return null
+
+  if (!item) {
+    return (
+      <section className="mb-6 rounded-2xl border border-amber-600/40 bg-amber-950/20 p-4 text-center text-sm text-amber-100">
+        Selected media is not available in this browser. Re-import the file or
+        choose another track on the admin panel.
+      </section>
+    )
+  }
 
   const hideTitle = playback?.hideTitleOnProjector
   const showControls = playback?.showVideoControls && showVideo

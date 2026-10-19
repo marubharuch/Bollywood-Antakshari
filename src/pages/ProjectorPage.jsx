@@ -1,4 +1,7 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
+import { ConnectionStatus } from '../components/common/ConnectionStatus.jsx'
+import { SyncStatusBar } from '../components/common/SyncStatusBar.jsx'
+import { useProjectorBootstrap } from '../hooks/useProjectorBootstrap.js'
 import { ProjectorMediaDisplay } from '../components/projector/ProjectorMediaDisplay.jsx'
 import { ProjectorBuzzerBanner } from '../components/projector/ProjectorBuzzerBanner.jsx'
 import { ProjectorQuestion } from '../components/projector/ProjectorQuestion.jsx'
@@ -15,6 +18,15 @@ export function ProjectorPage({ embedded = false, showPresentationControls = tru
   const rootRef = useRef(null)
   const fullscreenActive = useFullscreenActive()
   const { toasts, notify, dismiss } = useToasts()
+  const [reloadNote, setReloadNote] = useState(null)
+
+  useProjectorBootstrap({
+    embedded,
+    onPausedForReload: () => {
+      setReloadNote('Playback paused after reload — press Play to resume.')
+      notify('Projector synced. Press Play to resume media.', 'info')
+    },
+  })
 
   const handleFullscreen = async () => {
     const result = await toggleFullscreen(rootRef.current)
@@ -45,7 +57,11 @@ export function ProjectorPage({ embedded = false, showPresentationControls = tru
 
       <div className="relative z-10 flex min-h-full flex-col px-4 py-6 sm:px-8 sm:py-8">
         {showPresentationControls && !embedded && (
-          <div className="mb-4 flex justify-end gap-2">
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+            <div className="text-left">
+              <ConnectionStatus />
+              <SyncStatusBar updatedAt={state.updatedAt} note={reloadNote} />
+            </div>
             <Button
               variant="gold"
               size="sm"

@@ -25,6 +25,7 @@ import {
   INITIAL_GAME_STATE,
   normalizeGameState,
 } from './initialGameState.js'
+import { mergeRemoteGameState } from './mergeGameState.js'
 import {
   loadPersistedGameState,
   publishGameState,
@@ -66,9 +67,25 @@ function createStore() {
   }
 
   subscribeToGameSync(({ state: remote }) => {
-    state = normalizeGameState(remote)
+    state = mergeRemoteGameState(state, remote)
     notify()
   })
+
+  const rehydrateFromPersistence = () => {
+    const persisted = loadPersistedGameState()
+    if (!persisted) return false
+    state = mergeRemoteGameState(state, persisted)
+    notify()
+    return true
+  }
+
+  if (typeof document !== 'undefined') {
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        rehydrateFromPersistence()
+      }
+    })
+  }
 
   const adjustTeamScore = (teamId, delta) => {
     setState((prev) => ({
@@ -497,10 +514,30 @@ function createStore() {
     patchMediaPlayback({ [key]: !current, syncSeq: Date.now() }, { command: true })
   }
 
+  const prepareProjectorSession = () => {
+    rehydrateFromPersistence()
+    const pb = getState().mediaPlayback
+    let pausedForReload = false
+    if (pb?.status === 'playing') {
+      patchMediaPlayback(
+        {
+          status: 'paused',
+          error: null,
+          syncSeq: Date.now(),
+        },
+        { command: true },
+      )
+      pausedForReload = true
+    }
+    return { pausedForReload }
+  }
+
   return {
     getState,
     subscribe,
     setState,
+    rehydrateFromPersistence,
+    prepareProjectorSession,
     adjustTeamScore,
     setSimulationMode,
     startDemo,

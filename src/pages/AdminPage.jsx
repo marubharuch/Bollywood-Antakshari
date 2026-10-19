@@ -7,6 +7,8 @@ import { DevTestingPanel } from '../components/admin/DevTestingPanel.jsx'
 import { AdminMediaPanel } from '../components/media/AdminMediaPanel.jsx'
 import { RoundQuestionPanel } from '../components/admin/RoundQuestionPanel.jsx'
 import { RoundRulesSummary } from '../components/rounds/RoundRulesSummary.jsx'
+import { ConnectionStatus } from '../components/common/ConnectionStatus.jsx'
+import { SyncStatusBar } from '../components/common/SyncStatusBar.jsx'
 import { Badge } from '../components/common/Badge.jsx'
 import { Button } from '../components/common/Button.jsx'
 import { InlineAlert } from '../components/common/InlineAlert.jsx'
@@ -131,8 +133,12 @@ export function AdminPage({ embedded = false }) {
               Bollywood Antakshari
             </h1>
             <p className="text-xs text-slate-400">Admin control</p>
+            {!embedded && (
+              <SyncStatusBar updatedAt={state.updatedAt} />
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            {!embedded && <ConnectionStatus />}
             <AdminNav embedded={embedded} />
             <Badge tone={eventStatusTone(state.eventStatus)}>
               {eventStatusLabel(state.eventStatus)}

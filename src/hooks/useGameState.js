@@ -35,6 +35,8 @@ export function useGameState() {
     selectMediaForPlayback: gameStateStore.selectMediaForPlayback,
     addExternalMediaLink: gameStateStore.addExternalMediaLink,
     toggleMediaPlaybackFlag: gameStateStore.toggleMediaPlaybackFlag,
+    rehydrateFromPersistence: gameStateStore.rehydrateFromPersistence,
+    prepareProjectorSession: gameStateStore.prepareProjectorSession,
     setState: gameStateStore.setState,
   }
 }

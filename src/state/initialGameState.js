@@ -79,7 +79,9 @@ export function normalizeGameState(raw) {
     teams: normalizeTeamsList(raw.teams, base.teams),
     roundLibrary,
     selectedRoundId,
-    mediaLibrary: normalizeMediaLibrary(raw.mediaLibrary),
+    mediaLibrary: Object.prototype.hasOwnProperty.call(raw, 'mediaLibrary')
+      ? normalizeMediaLibrary(raw.mediaLibrary)
+      : base.mediaLibrary,
     mediaPlayback: normalizeMediaPlayback(raw.mediaPlayback),
     updatedAt: raw.updatedAt ?? Date.now(),
   }
