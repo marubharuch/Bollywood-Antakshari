@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react'
+import { AdminNav } from '../components/admin/AdminNav.jsx'
 import { AdminTeamScoreboard } from '../components/admin/AdminTeamScoreboard.jsx'
 import { BuzzerStatusPanel } from '../components/admin/BuzzerStatusPanel.jsx'
 import { DevTestingPanel } from '../components/admin/DevTestingPanel.jsx'
@@ -125,6 +126,7 @@ export function AdminPage({ embedded = false }) {
             <p className="text-xs text-slate-400">Admin control</p>
           </div>
           <div className="flex flex-wrap items-center gap-1.5">
+            <AdminNav embedded={embedded} />
             <Badge tone={eventStatusTone(state.eventStatus)}>
               {eventStatusLabel(state.eventStatus)}
             </Badge>
@@ -185,8 +187,11 @@ export function AdminPage({ embedded = false }) {
         <div className="grid gap-2 lg:grid-cols-12">
           <section className="lg:col-span-7">
             <h2 className="mb-1.5 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              Teams (demo)
+              Teams — demo scores (+/−5)
             </h2>
+            <p className="mb-1.5 text-[11px] text-slate-600">
+              Edit roster in Manage Teams. +/- only adjusts demo scores.
+            </p>
             <AdminTeamScoreboard
               teams={state.teams}
               onAdjustScore={handleScoreAdjust}

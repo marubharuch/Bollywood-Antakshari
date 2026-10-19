@@ -1,4 +1,13 @@
 import {
+  createTeamId,
+  DEFAULT_TOURNAMENT_TEAM_META,
+  pickAvailableTeamColor,
+} from '../features/tournament/teamModel.js'
+import {
+  validateTeamColor,
+  validateTeamName,
+} from '../features/tournament/teamValidation.js'
+import {
   createInitialGameState,
   INITIAL_GAME_STATE,
   normalizeGameState,
@@ -165,6 +174,113 @@ function createStore() {
     }), { origin: 'admin' })
   }
 
+  const buzzerClearPatchIfTeam = (prev, teamId) => {
+    if (prev.buzzer?.teamId !== teamId) return {}
+    return {
+      buzzer: {
+        status: 'idle',
+        announcement: null,
+        teamId: null,
+        teamName: null,
+      },
+    }
+  }
+
+  const addTeam = (name, accent) => {
+    const validation = validateTeamName(name, state.teams)
+    if (!validation.valid) {
+      return { success: false, error: validation.error }
+    }
+
+    let color = accent
+    if (color) {
+      const colorCheck = validateTeamColor(color)
+      if (!colorCheck.valid) {
+        return { success: false, error: colorCheck.error }
+      }
+      color = colorCheck.color
+    } else {
+      color = pickAvailableTeamColor(state.teams)
+    }
+
+    const team = {
+      id: createTeamId(),
+      name: validation.name,
+      score: 0,
+      accent: color,
+      tournament: { ...DEFAULT_TOURNAMENT_TEAM_META },
+    }
+
+    setState({ teams: [...state.teams, team] }, { origin: 'teams' })
+    return { success: true, team }
+  }
+
+  const updateTeam = (teamId, updates) => {
+    const existing = state.teams.find((t) => t.id === teamId)
+    if (!existing) {
+      return { success: false, error: 'Team not found.' }
+    }
+
+    let nextName = existing.name
+    if (updates.name !== undefined) {
+      const validation = validateTeamName(updates.name, state.teams, teamId)
+      if (!validation.valid) {
+        return { success: false, error: validation.error }
+      }
+      nextName = validation.name
+    }
+
+    let nextAccent = existing.accent
+    if (updates.accent !== undefined) {
+      const colorCheck = validateTeamColor(updates.accent)
+      if (!colorCheck.valid) {
+        return { success: false, error: colorCheck.error }
+      }
+      nextAccent = colorCheck.color
+    }
+
+    setState((prev) => ({
+      teams: prev.teams.map((t) =>
+        t.id === teamId
+          ? {
+              ...t,
+              name: nextName,
+              accent: nextAccent,
+              score: t.score,
+              tournament: t.tournament ?? { ...DEFAULT_TOURNAMENT_TEAM_META },
+            }
+          : t,
+      ),
+      ...(prev.buzzer?.teamId === teamId
+        ? {
+            buzzer: {
+              ...prev.buzzer,
+              teamName: nextName,
+              announcement: prev.buzzer.announcement
+                ? prev.buzzer.announcement.replace(existing.name, nextName)
+                : null,
+            },
+          }
+        : {}),
+    }), { origin: 'teams' })
+
+    return { success: true, team: { ...existing, name: nextName, accent: nextAccent } }
+  }
+
+  const deleteTeam = (teamId) => {
+    const existing = state.teams.find((t) => t.id === teamId)
+    if (!existing) {
+      return { success: false, error: 'Team not found.' }
+    }
+
+    setState((prev) => ({
+      teams: prev.teams.filter((t) => t.id !== teamId),
+      ...buzzerClearPatchIfTeam(prev, teamId),
+    }), { origin: 'teams' })
+
+    return { success: true, team: existing }
+  }
+
   return {
     getState,
     subscribe,
@@ -178,6 +294,9 @@ function createStore() {
     clearBuzzer,
     revealAnswer,
     toggleAnswerVisibility,
+    addTeam,
+    updateTeam,
+    deleteTeam,
     destroy: clearSimulationTimer,
   }
 }

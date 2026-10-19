@@ -19,6 +19,9 @@ export function useGameState() {
     clearBuzzer: gameStateStore.clearBuzzer,
     revealAnswer: gameStateStore.revealAnswer,
     toggleAnswerVisibility: gameStateStore.toggleAnswerVisibility,
+    addTeam: gameStateStore.addTeam,
+    updateTeam: gameStateStore.updateTeam,
+    deleteTeam: gameStateStore.deleteTeam,
     setState: gameStateStore.setState,
   }
 }

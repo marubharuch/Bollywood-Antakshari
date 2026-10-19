@@ -1,5 +1,14 @@
+import { normalizeTeam, normalizeTeamsList } from '../features/tournament/teamModel.js'
+
 /** @typedef {'idle' | 'demo' | 'live' | 'paused'} EventStatus */
 /** @typedef {'idle' | 'ready' | 'active' | 'locked'} BuzzerStatus */
+
+const SAMPLE_TEAMS = [
+  { id: 'team-1', name: 'Team Rang De', score: 120, accent: '#e11d48' },
+  { id: 'team-2', name: 'Team Dil Se', score: 95, accent: '#7c3aed' },
+  { id: 'team-3', name: 'Team Taal', score: 110, accent: '#0891b2' },
+  { id: 'team-4', name: 'Team Josh', score: 80, accent: '#ea580c' },
+]
 
 export function createInitialGameState(overrides = {}) {
   return {
@@ -21,12 +30,7 @@ export function createInitialGameState(overrides = {}) {
       teamId: null,
       teamName: null,
     },
-    teams: [
-      { id: 'team-1', name: 'Team Rang De', score: 120, accent: '#e11d48' },
-      { id: 'team-2', name: 'Team Dil Se', score: 95, accent: '#7c3aed' },
-      { id: 'team-3', name: 'Team Taal', score: 110, accent: '#0891b2' },
-      { id: 'team-4', name: 'Team Josh', score: 80, accent: '#ea580c' },
-    ],
+    teams: SAMPLE_TEAMS.map((team, index) => normalizeTeam(team, index)),
     musicPlayer: {
       status: 'placeholder',
       label: 'Music player — Phase 2',
@@ -55,8 +59,9 @@ export function normalizeGameState(raw) {
     question: { ...base.question, ...(raw.question ?? {}) },
     buzzer: { ...base.buzzer, ...(raw.buzzer ?? {}) },
     musicPlayer: { ...base.musicPlayer, ...(raw.musicPlayer ?? {}) },
-    teams:
-      Array.isArray(raw.teams) && raw.teams.length > 0 ? raw.teams : base.teams,
+    teams: normalizeTeamsList(raw.teams, base.teams),
     updatedAt: raw.updatedAt ?? Date.now(),
   }
 }
+
+export { SAMPLE_TEAMS }
