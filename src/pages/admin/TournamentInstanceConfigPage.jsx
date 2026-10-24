@@ -57,6 +57,7 @@ export function TournamentInstanceConfigPage() {
       instanceId,
       { allowReuse: false },
       state.tournamentEventSettings,
+      state.questionLibrary ?? [],
     )
   }, [
     def,
@@ -65,6 +66,7 @@ export function TournamentInstanceConfigPage() {
     state.roundLibrary,
     state.tournamentInstances,
     state.tournamentEventSettings,
+    state.questionLibrary,
     instanceId,
   ])
 

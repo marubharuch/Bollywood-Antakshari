@@ -12,6 +12,8 @@ export function RoundLibraryPage() {
     duplicateRound,
     deleteRound,
     createEmptyRoundDraft,
+    upsertQuestionLibraryEntry,
+    selectMediaForPlayback,
   } = useGameState()
   const { notify, toasts, dismiss } = shell
 
@@ -35,8 +37,18 @@ export function RoundLibraryPage() {
 
       <RoundLibraryWorkspace
         roundLibrary={state.roundLibrary}
+        questionLibrary={state.questionLibrary}
         mediaLibrary={state.mediaLibrary}
         onSaveRound={saveRound}
+        onUpsertQuestionLibraryEntry={upsertQuestionLibraryEntry}
+        onPreviewMedia={(q, mediaItem) => {
+          if (!mediaItem?.id) return
+          selectMediaForPlayback(mediaItem.id, {
+            segmentStartSeconds: q.media?.segmentStartSeconds ?? null,
+            segmentEndSeconds: q.media?.segmentEndSeconds ?? null,
+          })
+          notify('Preview loaded in admin media player.', 'success')
+        }}
         onDuplicateRound={duplicateRound}
         onDeleteRound={deleteRound}
         onCreateDraft={createEmptyRoundDraft}

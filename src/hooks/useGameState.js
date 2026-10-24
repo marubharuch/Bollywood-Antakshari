@@ -27,6 +27,7 @@ export function useGameState() {
     updateTeam: STORE.updateTeam,
     deleteTeam: STORE.deleteTeam,
     saveRound: STORE.saveRound,
+    upsertQuestionLibraryEntry: STORE.upsertQuestionLibraryEntry,
     duplicateRound: STORE.duplicateRound,
     deleteRound: STORE.deleteRound,
     selectRound: STORE.selectRound,

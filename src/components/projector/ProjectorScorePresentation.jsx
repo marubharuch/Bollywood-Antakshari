@@ -4,7 +4,7 @@ import {
   isScorePresentationActive,
 } from '../../features/presentation/scorePresentationModel.js'
 import { getTeamRoundScore } from '../../features/tournament/roundScoreLedger.js'
-import { ROUND_PLAY_STATUS } from '../../features/tournament/tournamentModel.js'
+import { playedRoundsSubtitle } from '../../features/tournament/tournamentRoundScoreMatrix.js'
 import { ProjectorAllRoundsScoreTable } from './ProjectorAllRoundsScoreTable.jsx'
 import { ProjectorScoreboard } from './ProjectorScoreboard.jsx'
 
@@ -21,11 +21,7 @@ export function ProjectorScorePresentation({
   const team = teams?.find((t) => t.id === teamId)
   const planned = tournament?.plannedRounds?.find((p) => p.id === scorePresentation.planRoundId)
 
-  const playedRounds = (tournament?.plannedRounds ?? []).filter(
-    (p) =>
-      p.roundStatus === ROUND_PLAY_STATUS.COMPLETED ||
-      (p.roundStatus === ROUND_PLAY_STATUS.ACTIVE && p.stoppedEarly),
-  )
+  const playedRoundsLabel = playedRoundsSubtitle(tournament?.plannedRounds)
 
   if (phase === SCORE_PRESENTATION_PHASE.TEAM && team) {
     const isRoundEnd = scorePresentation.kind === SCORE_PRESENTATION_KIND.ROUND_END
@@ -73,23 +69,27 @@ export function ProjectorScorePresentation({
   }
 
   if (phase === SCORE_PRESENTATION_PHASE.SCOREBOARD) {
+    const isTournamentStandings =
+      scorePresentation.kind === SCORE_PRESENTATION_KIND.TOTAL_ASCENDING
     return (
-      <div className="projector-score-presentation-root">
-        <p className="shrink-0 text-center text-[clamp(0.65rem,2vw,0.85rem)] uppercase tracking-[0.35em] text-amber-200/80">
-          {scorePresentation.kind === SCORE_PRESENTATION_KIND.TOTAL_ASCENDING
-            ? 'Tournament standings'
-            : 'Round scoreboard'}
-        </p>
-        {scorePresentation.kind === SCORE_PRESENTATION_KIND.TOTAL_ASCENDING &&
-          playedRounds.length > 0 && (
-            <p className="mt-1 shrink-0 px-2 text-center text-[clamp(0.55rem,1.6vw,0.7rem)] text-slate-500 line-clamp-2">
-              Played rounds:{' '}
-              {playedRounds.map((p) => p.snapshot?.name ?? 'Round').join(' · ')}
-            </p>
-          )}
+      <div className="projector-score-presentation-root projector-score-presentation-root--standings">
+        {isTournamentStandings ? (
+          <h2 className="projector-tournament-standings-title shrink-0 text-center font-bold text-[var(--color-gold)]">
+            T O U R N A M E N T&nbsp;&nbsp;S T A N D I N G S
+          </h2>
+        ) : (
+          <p className="shrink-0 text-center text-[clamp(0.65rem,2vw,0.85rem)] uppercase tracking-[0.35em] text-amber-200/80">
+            Round scoreboard
+          </p>
+        )}
+        {isTournamentStandings && playedRoundsLabel && (
+          <p className="projector-tournament-standings-subtitle mt-2 shrink-0 px-4 text-center text-amber-100/75">
+            Played rounds: {playedRoundsLabel}
+          </p>
+        )}
         <div className="projector-score-presentation-board">
-          {scorePresentation.kind === SCORE_PRESENTATION_KIND.TOTAL_ASCENDING ? (
-            <ProjectorAllRoundsScoreTable tournament={tournament} teams={teams} />
+          {isTournamentStandings ? (
+            <ProjectorAllRoundsScoreTable tournament={tournament} teams={teams} projector />
           ) : (
             <ProjectorScoreboard teams={teams} fitViewport scoreColumns={scoreColumns} />
           )}

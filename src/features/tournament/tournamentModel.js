@@ -4,6 +4,10 @@ import {
   resolveMainRoundType,
 } from '../rounds/mainRoundType.js'
 import { normalizeRoundQuestions } from '../rounds/roundQuestionModel.js'
+import {
+  resolveRoundPlayQuestions,
+  RESOLVE_SOURCE,
+} from '../questionLibrary/resolveRoundPlayQuestions.js'
 import { normalizeTournamentStatus, TOURNAMENT_STATUS } from './tournamentLifecycle.js'
 
 export const PLAY_TIMER_SECONDS = 10
@@ -381,44 +385,70 @@ function playQuestionFromLibraryEntry(q, round, index, mainType) {
 }
 
 export function buildQuestionQueue(round, shuffleQuestions = false, options = {}) {
-  if (!round) return { questions: [], questionOrder: [] }
+  if (!round) return { questions: [], questionOrder: [], resolveMeta: null }
   const mainType = resolveMainRoundType(round)
   if (mainType === MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) {
-    return { questions: [], questionOrder: [] }
+    return { questions: [], questionOrder: [], resolveMeta: null }
   }
 
-  let libraryQs = normalizeRoundQuestions(round.questions).filter(
-    (q) => q.selectedForRound !== false,
-  )
-  const allocated = options.allocatedQuestionIds
-  if (Array.isArray(allocated) && allocated.length) {
-    const byId = new Map(libraryQs.map((q) => [q.id, q]))
-    libraryQs = allocated.map((id) => byId.get(id)).filter(Boolean)
+  const resolved = resolveRoundPlayQuestions(round, options.questionLibrary ?? [], {
+    allocatedQuestionIds: options.allocatedQuestionIds,
+    allowLegacyEmbedded: true,
+    allowSynthetic: Boolean(options.allowSynthetic),
+  })
+
+  const libraryQs = resolved.questions
+  const resolveMeta = {
+    source: resolved.source,
+    errors: resolved.errors,
+    usedLegacyFallback: resolved.usedLegacyFallback,
+    usedSyntheticFallback: resolved.usedSyntheticFallback,
   }
+
+  if (resolved.errors.length > 0 && libraryQs.length === 0) {
+    return { questions: [], questionOrder: [], resolveMeta }
+  }
+
   if (libraryQs.length > 0) {
     const items = libraryQs.map((q, i) => playQuestionFromLibraryEntry(q, round, i, mainType))
     const order = shuffleQuestions
       ? shuffleArray(items.map((_, i) => i))
       : items.map((_, i) => i)
-    return { questions: items, questionOrder: order }
+    return { questions: items, questionOrder: order, resolveMeta }
   }
 
-  const count = Math.max(0, round.rules?.questionCount ?? 5)
-  if (count === 0) return { questions: [], questionOrder: [] }
-  const items = Array.from({ length: count }, (_, i) => ({
-    id: `q-${i + 1}`,
-    index: i,
-    status: QUESTION_STATUS.PENDING,
-    prompt:
-      round.rules?.mediaRequired
-        ? `Question ${i + 1} — media round`
-        : `${round.name} — Question ${i + 1}`,
-    letter: String.fromCharCode(65 + (i % 26)),
-    hiddenAnswer: round.customRule || round.description || round.instructions || 'Answer TBD',
-    mediaId: null,
-  }))
-  const order = shuffleQuestions ? shuffleArray(items.map((_, i) => i)) : items.map((_, i) => i)
-  return { questions: items, questionOrder: order }
+  const count = Math.max(0, round.rules?.questionCount ?? 0)
+  if (count === 0) {
+    return { questions: [], questionOrder: [], resolveMeta }
+  }
+
+  if (options.allowSynthetic) {
+    const items = Array.from({ length: count }, (_, i) => ({
+      id: `q-${i + 1}`,
+      index: i,
+      status: QUESTION_STATUS.PENDING,
+      prompt:
+        round.rules?.mediaRequired
+          ? `Question ${i + 1} — media round`
+          : `${round.name} — Question ${i + 1}`,
+      letter: String.fromCharCode(65 + (i % 26)),
+      hiddenAnswer: round.customRule || round.description || round.instructions || 'Answer TBD',
+      mediaId: null,
+    }))
+    const order = shuffleQuestions ? shuffleArray(items.map((_, i) => i)) : items.map((_, i) => i)
+    return {
+      questions: items,
+      questionOrder: order,
+      resolveMeta: {
+        source: RESOLVE_SOURCE.SYNTHETIC,
+        errors: ['Synthetic question slots generated (allowSynthetic).'],
+        usedLegacyFallback: false,
+        usedSyntheticFallback: true,
+      },
+    }
+  }
+
+  return { questions: [], questionOrder: [], resolveMeta }
 }
 
 export function buildTeamCycle(teams, playSettings) {

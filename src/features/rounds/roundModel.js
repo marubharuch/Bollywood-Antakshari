@@ -5,7 +5,15 @@ import {
   syncRulesForMainType,
 } from './mainRoundType.js'
 import { ROUND_PLAY_TYPE } from './roundPlayType.js'
-import { countSelectedQuestions, normalizeRoundQuestions } from './roundQuestionModel.js'
+import {
+  countSelectedQuestions,
+  normalizeAssignmentQuestionIds,
+  normalizeRoundQuestions,
+} from './roundQuestionModel.js'
+import {
+  inferQuestionFormatForRound,
+  normalizeQuestionFormat,
+} from '../questionLibrary/questionFormatModel.js'
 
 /** @typedef {import('./roundTypes.js').RoundDefinition} RoundDefinition */
 
@@ -83,11 +91,27 @@ export function normalizeRound(raw = {}) {
     rules = { ...rules, questionCount: selected }
   }
 
+  const draftForFormat = {
+    ...raw,
+    mainRoundType,
+    questions,
+    questionBankId: raw.questionBankId,
+    questionFormat: raw.questionFormat,
+  }
+  const questionFormat =
+    normalizeQuestionFormat(raw.questionFormat) ?? inferQuestionFormatForRound(draftForFormat)
+  const assignmentQuestionIds = normalizeAssignmentQuestionIds(
+    raw.assignmentQuestionIds,
+    questions,
+  )
+
   return {
     id:
       typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createRoundId(),
     mainRoundType,
     playType,
+    questionFormat,
+    assignmentQuestionIds,
     customRule: typeof raw.customRule === 'string' ? raw.customRule.trim() : '',
     questionBankId:
       typeof raw.questionBankId === 'string' && raw.questionBankId.trim()

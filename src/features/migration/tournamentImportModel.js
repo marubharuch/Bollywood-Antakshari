@@ -30,6 +30,7 @@ import {
 import { TOURNAMENT_INSTANCE_DEFS } from '../tournament/tournamentRegistry.js'
 import { normalizeTournamentEventSettings } from '../tournament/tournamentEventModel.js'
 import { migrateGameStateToMultiTournament } from '../tournament/tournamentStateMigration.js'
+import { normalizeQuestionLibraryFromImport } from '../questionLibrary/migrateQuestionLibrary.js'
 
 function isObject(value) {
   return value != null && typeof value === 'object' && !Array.isArray(value)
@@ -98,6 +99,9 @@ export function validateTournamentImportPackage(raw) {
   const buzzerSystem = normalizeBuzzerSystem(raw.buzzerSystem)
   const presentation = normalizePresentation(raw.presentation)
   const scoreDisplay = normalizeScoreDisplay(raw.scoreDisplay)
+  const questionLibrary = Array.isArray(raw.questionLibrary)
+    ? normalizeQuestionLibraryFromImport(raw.questionLibrary)
+    : []
 
   return {
     valid: true,
@@ -118,6 +122,7 @@ export function validateTournamentImportPackage(raw) {
       tournamentInstances,
       activeTournamentInstanceId,
       tournamentEventSettings,
+      questionLibrary,
       isMulti,
     },
   }
@@ -245,6 +250,9 @@ export function applyTournamentImportPackage(state, pkg, options = {}) {
       activeTournamentInstanceId: activeId,
       tournamentEventSettings: data.tournamentEventSettings,
       roundLibrary,
+      questionLibrary: data.questionLibrary?.length
+        ? data.questionLibrary
+        : state.questionLibrary,
       mediaLibrary,
       buzzerSystem: data.buzzerSystem,
       playSession: normalizePlaySession({

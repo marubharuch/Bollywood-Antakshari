@@ -14,6 +14,7 @@ import { normalizeStageProfiles } from '../tournament/stageProfileModel.js'
 import { normalizeTournamentInstances } from '../tournament/tournamentInstanceModel.js'
 import { TOURNAMENT_INSTANCE_DEFS } from '../tournament/tournamentRegistry.js'
 import { normalizeTournamentEventSettings } from '../tournament/tournamentEventModel.js'
+import { normalizeQuestionLibrary } from '../questionLibrary/questionLibraryModel.js'
 
 export const TOURNAMENT_EXPORT_FORMAT = 'bollywood-antakshari-tournament'
 export const TOURNAMENT_EXPORT_VERSION = 2
@@ -168,6 +169,7 @@ export function buildTournamentExportPackage(state) {
     tournamentInstances: exportedInstances,
     tournament: exportedTournament,
     roundLibrary,
+    questionLibrary: normalizeQuestionLibrary(state.questionLibrary ?? []),
     teams: state.teams,
     buzzerSystem: normalizeBuzzerSystem(state.buzzerSystem),
     presentation: sanitizePresentationForExport(state.presentation),

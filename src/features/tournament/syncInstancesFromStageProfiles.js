@@ -10,6 +10,9 @@ import {
 import { normalizeTournament } from './tournamentModel.js'
 import { TOURNAMENT_STATUS } from './tournamentLifecycle.js'
 import { getTournamentInstanceDef, TOURNAMENT_INSTANCE_DEFS } from './tournamentRegistry.js'
+import { shouldSyncPlannedRoundsFromStage } from './instanceExecutionGuard.js'
+
+export { shouldSyncPlannedRoundsFromStage } from './instanceExecutionGuard.js'
 
 const ACTIVE_SESSION_STATUSES = new Set([
   TOURNAMENT_STATUS.IN_PROGRESS,
@@ -17,20 +20,6 @@ const ACTIVE_SESSION_STATUSES = new Set([
   TOURNAMENT_STATUS.STOPPED,
   TOURNAMENT_STATUS.COMPLETED,
 ])
-
-/**
- * @param {object | null | undefined} bundle
- * @param {{ forceReplan?: boolean }} [options]
- */
-export function shouldSyncPlannedRoundsFromStage(bundle, options = {}) {
-  const tournament = bundle?.tournament
-  if (!tournament) return true
-  const status = tournament.status ?? TOURNAMENT_STATUS.DRAFT
-  if (ACTIVE_SESSION_STATUSES.has(status)) return false
-  const hasPlan = (tournament.plannedRounds ?? []).length > 0
-  if (options.forceReplan) return true
-  return !hasPlan
-}
 
 /**
  * Build planned rounds on a tournament instance bundle from its shared stage profile.
@@ -44,6 +33,7 @@ export function prepareTournamentBundleFromStageProfile({
   tournamentInstances,
   tournamentEventSettings,
   allowQuestionReuse = false,
+  questionLibrary = [],
 }) {
   const def = getTournamentInstanceDef(instanceId)
   if (!def) return { success: false, errors: ['Unknown tournament instance.'] }
@@ -75,6 +65,7 @@ export function prepareTournamentBundleFromStageProfile({
       shuffle: Boolean(profile.playSettings?.questionOrderShuffle),
     },
     tournamentEventSettings,
+    questionLibrary,
   )
 
   const allocations = alloc.success ? alloc.allocations : {}
@@ -127,6 +118,7 @@ export function syncTournamentInstancesFromStageProfiles(ctx) {
     tournamentEventSettings,
     stageProfileId = null,
     forceReplan = false,
+    questionLibrary = [],
   } = ctx
 
   const instances = { ...tournamentInstances }
@@ -146,6 +138,7 @@ export function syncTournamentInstancesFromStageProfiles(ctx) {
       roundLibrary,
       tournamentInstances: instances,
       tournamentEventSettings,
+      questionLibrary,
     })
 
     if (!result.success) continue

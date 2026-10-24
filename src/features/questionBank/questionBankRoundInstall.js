@@ -1,4 +1,5 @@
 import { MAIN_ROUND_TYPE } from '../rounds/mainRoundType.js'
+import { QUESTION_FORMAT } from '../questionLibrary/questionFormatModel.js'
 import { normalizeRound } from '../rounds/roundModel.js'
 import { QUESTION_BANK_ID, QUESTION_BANK_ROUND_IDS } from './questionBankIds.js'
 import { hydrateRoundLibraryQuestionBanks } from './questionBankRound.js'
@@ -42,6 +43,7 @@ export function applyQuestionBankRoundsToRoundLibrary(roundLibrary) {
       instructions: existing?.instructions?.trim() ? existing.instructions : def.instructions,
       category: 'antakshari',
       mainRoundType: MAIN_ROUND_TYPE.WORD,
+      questionFormat: QUESTION_FORMAT.WORD_IN_MUKHADA,
       questionBankId: def.questionBankId,
       questions: existing?.questions?.length ? existing.questions : [],
       customRule:

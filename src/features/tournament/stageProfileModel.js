@@ -16,6 +16,7 @@ import {
   normalizePlannedRound,
   snapshotRound,
 } from './tournamentModel.js'
+import { resolveRoundPlayQuestions } from '../questionLibrary/resolveRoundPlayQuestions.js'
 import { STAGE_PROFILE_DEFS } from './tournamentRegistry.js'
 
 function createSlotId() {
@@ -109,10 +110,16 @@ export function defaultQuestionCountForRound(round) {
   return 5
 }
 
-export function eligibleQuestionsForRound(round) {
+export function eligibleQuestionsForRound(round, questionLibrary = null) {
   const normalized = normalizeRound(round)
   const mainType = resolveMainRoundType(normalized)
   if (mainType === MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) return []
+  if (Array.isArray(questionLibrary) && questionLibrary.length > 0) {
+    const resolved = resolveRoundPlayQuestions(normalized, questionLibrary, {
+      allowLegacyEmbedded: true,
+    })
+    if (resolved.questions.length > 0) return resolved.questions
+  }
   if (roundUsesQuestionBank(normalized)) {
     return eligibleQuestionsForLibraryRound(normalized)
   }

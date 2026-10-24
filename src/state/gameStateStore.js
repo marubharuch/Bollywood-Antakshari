@@ -126,6 +126,10 @@ import {
   teamOrderForRoundReveal,
 } from '../features/presentation/scorePresentationModel.js'
 import {
+  normalizeLibraryQuestion,
+  normalizeQuestionLibrary,
+} from '../features/questionLibrary/questionLibraryModel.js'
+import {
   createInitialGameState,
   INITIAL_GAME_STATE,
   normalizeGameState,
@@ -322,9 +326,28 @@ function createStore() {
     }
   }
 
+  const upsertQuestionLibraryEntry = (entry) => {
+    const question = normalizeLibraryQuestion(entry)
+    if (!question) return { success: false, error: 'Invalid question.' }
+    setState((prev) => {
+      const list = normalizeQuestionLibrary(prev.questionLibrary ?? [])
+      const idx = list.findIndex((q) => q.id === question.id)
+      const next =
+        idx >= 0
+          ? list.map((q, i) => (i === idx ? question : q))
+          : [...list, question]
+      return { questionLibrary: next }
+    }, { origin: 'rounds' })
+    return { success: true, question }
+  }
+
   const saveRound = (draft) => {
     const normalized = normalizeRound(draft)
-    const validation = validateRoundDraft(normalized, state.roundLibrary)
+    const validation = validateRoundDraft(
+      normalized,
+      state.roundLibrary,
+      state.questionLibrary ?? [],
+    )
     if (!validation.valid) {
       return { success: false, errors: validation.errors, error: 'Fix validation errors.' }
     }
@@ -364,10 +387,8 @@ function createStore() {
       isTemplate: false,
       createdAt: Date.now(),
       updatedAt: Date.now(),
-      questions: (source.questions ?? []).map((q) => ({
-        ...q,
-        id: `rq-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      })),
+      assignmentQuestionIds: [...(source.assignmentQuestionIds ?? [])],
+      questions: [],
     })
     setState({ roundLibrary: [...state.roundLibrary, copy] }, { origin: 'rounds' })
     return { success: true, round: copy }
@@ -601,6 +622,7 @@ function createStore() {
         shuffle: Boolean(tournament.playSettings?.questionOrderShuffle),
       },
       state.tournamentEventSettings,
+      state.questionLibrary ?? [],
     )
     if (!alloc.success) {
       return {
@@ -820,14 +842,23 @@ function createStore() {
 
   const armGrandOpeningReady = (prev, tournamentId) => {
     if (isIntroPlaying(prev.presentation)) return {}
+    if (prev.presentation?.grandOpeningPlayedForTournamentId === tournamentId) {
+      return {}
+    }
+    const intro = prev.presentation?.intro
+    if (
+      intro?.kind === INTRO_KIND.GRAND &&
+      (intro.status === INTRO_STATUS.READY || intro.status === INTRO_STATUS.PLAYING)
+    ) {
+      return {}
+    }
     return {
       presentation: normalizePresentation({
         ...prev.presentation,
-        grandOpeningPlayedForTournamentId: null,
         pendingRoundIntroPlanId: null,
         intro: normalizeIntroPlayback({
           kind: INTRO_KIND.GRAND,
-          status: INTRO_STATUS.READY,
+          status: INTRO_STATUS.PLAYING,
           token: createIntroToken(INTRO_KIND.GRAND, tournamentId),
           tournamentId,
           stageLine: 'DHRUV SHAH PRESENTS',
@@ -1353,7 +1384,7 @@ function createStore() {
     const check = validatePlannedRoundPlay(planRoundId, options)
     if (!check.success) return check
     const { tournament, planIndex, planned, snapshot } = check
-    const playCheck = validateRoundHasPlayableQuestions(snapshot)
+    const playCheck = validateRoundHasPlayableQuestions(snapshot, state.questionLibrary ?? [])
     if (!playCheck.valid) {
       return { success: false, error: playCheck.error }
     }
@@ -1367,6 +1398,7 @@ function createStore() {
         }
       : buildQuestionQueue(snapshot, Boolean(tournament.playSettings?.questionOrderShuffle), {
           allocatedQuestionIds: planned.allocatedQuestionIds,
+          questionLibrary: state.questionLibrary ?? [],
         })
 
     const plannedRounds = tournament.plannedRounds.map((p) => {
@@ -1929,6 +1961,10 @@ function createStore() {
   const endActiveRoundToPresentation = (prev, { completed }) => {
     const planId = prev.playSession?.activePlanRoundId
     if (!planId) return {}
+    const existingPlan = prev.tournament?.plannedRounds?.find((p) => p.id === planId)
+    if (completed && existingPlan?.roundStatus === ROUND_PLAY_STATUS.COMPLETED) {
+      return {}
+    }
     const plannedRounds = (prev.tournament?.plannedRounds ?? []).map((p) => {
       if (p.id !== planId) return p
       if (completed) {
@@ -1956,9 +1992,7 @@ function createStore() {
     const notice = completed
       ? `Round complete — ${completedPlan?.snapshot?.name ?? 'Round'}`
       : `Round paused — ${completedPlan?.snapshot?.name ?? 'Round'}`
-    const withTournament = { ...prev, tournament }
-    return {
-      ...beginScorePresentation(withTournament, SCORE_PRESENTATION_KIND.ROUND_END, planId),
+    const shared = {
       tournament,
       tournamentPlans: upsertTournamentPlan(prev.tournamentPlans, tournament),
       playSession: normalizePlaySession({
@@ -1979,6 +2013,20 @@ function createStore() {
         ...DEFAULT_MEDIA_PLAYBACK,
         volume: prev.mediaPlayback?.volume ?? DEFAULT_MEDIA_PLAYBACK.volume,
       },
+    }
+    if (!completed) {
+      return {
+        ...clearScorePresentationState(prev),
+        ...shared,
+      }
+    }
+    return {
+      ...beginScorePresentation(
+        { ...prev, tournament },
+        SCORE_PRESENTATION_KIND.TOTAL_ASCENDING,
+        planId,
+      ),
+      ...shared,
     }
   }
 
@@ -2723,6 +2771,7 @@ function createStore() {
         tournamentEventSettings: prev.tournamentEventSettings,
         stageProfileId: profileId,
         forceReplan: true,
+        questionLibrary: prev.questionLibrary ?? [],
       })
       const patch = { stageProfiles, tournamentInstances: synced.tournamentInstances }
       const activeId = prev.activeTournamentInstanceId
@@ -2821,6 +2870,7 @@ function createStore() {
     updateTeam,
     deleteTeam,
     saveRound,
+    upsertQuestionLibraryEntry,
     duplicateRound,
     deleteRound,
     selectRound,

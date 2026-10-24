@@ -9,6 +9,8 @@
     "build:gh-pages": "vite build",
     "lint": "oxlint",
     "word-library:report": "node scripts/report-hindi-word-library.mjs",
+    "test:phase0-phase1": "node scripts/test-phase0-phase1.mjs",
+    "test:phase2": "node scripts/test-phase2.mjs",
     "preview": "vite preview",
     "buzzer-server:install": "npm install --prefix buzzer-server",
     "buzzer-server:start": "npm start --prefix buzzer-server",

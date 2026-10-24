@@ -4,12 +4,13 @@ import {
   resolveMainRoundType,
 } from './mainRoundType.js'
 import { getSelectedRoundQuestions, validateRoundQuestion } from './roundQuestionModel.js'
+import { resolveRoundPlayQuestions } from '../questionLibrary/resolveRoundPlayQuestions.js'
 
 /**
  * @param {object} draft
  * @param {{ id?: string }[]} library
  */
-export function validateRoundDraft(draft, library = []) {
+export function validateRoundDraft(draft, library = [], questionLibrary = []) {
   const errors = {}
 
   const name = (draft.name ?? '').trim()
@@ -53,13 +54,21 @@ export function validateRoundDraft(draft, library = []) {
   }
 
   if (mainTypeNeedsQuestionLibrary(mainType)) {
-    const questions = Array.isArray(draft.questions) ? draft.questions : []
-    const selected = getSelectedRoundQuestions(questions)
+    const resolved = resolveRoundPlayQuestions(draft, questionLibrary, {
+      allowLegacyEmbedded: true,
+    })
+    if (resolved.errors.length) {
+      errors.questionAssignments = resolved.errors.join(' ')
+    }
+    const selected =
+      resolved.questions.length > 0
+        ? resolved.questions
+        : getSelectedRoundQuestions(draft.questions ?? [])
     const selectedCount = selected.length
 
     if (selectedCount < 1) {
       errors.questionCount =
-        'Select at least one question for this round (use the checkbox in the question library).'
+        'Select at least one question for this round (use the checkbox in the question table).'
     } else if (selectedCount > 999) {
       errors.questionCount = 'At most 999 questions can be selected per round.'
     }
@@ -95,12 +104,21 @@ export function validateRoundDraft(draft, library = []) {
 /**
  * @param {object} round snapshot or library round
  */
-export function validateRoundHasPlayableQuestions(round) {
+export function validateRoundHasPlayableQuestions(round, questionLibrary = []) {
   const mainType = resolveMainRoundType(round)
   if (mainType === MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) {
     return { valid: true }
   }
-  const selected = getSelectedRoundQuestions(round?.questions)
+  const resolved = resolveRoundPlayQuestions(round, questionLibrary, {
+    allowLegacyEmbedded: true,
+  })
+  if (resolved.errors.length) {
+    return { valid: false, error: resolved.errors[0] }
+  }
+  const selected =
+    resolved.questions.length > 0
+      ? resolved.questions
+      : getSelectedRoundQuestions(round?.questions)
   if (selected.length < 1) {
     return {
       valid: false,

@@ -4,10 +4,10 @@ import './introAnimations.css'
 
 const PHASES = [
   { at: 0, key: 'dark' },
-  { at: 3000, key: 'stage' },
-  { at: 9000, key: 'presents' },
-  { at: 15000, key: 'title' },
-  { at: 21000, key: 'tagline' },
+  { at: 1000, key: 'stage' },
+  { at: 3000, key: 'presents' },
+  { at: 5000, key: 'title' },
+  { at: 7000, key: 'tagline' },
 ]
 
 export function GrandOpeningIntro({

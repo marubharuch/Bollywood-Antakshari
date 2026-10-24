@@ -33,6 +33,8 @@ import {
   normalizeTournamentInstances,
 } from '../features/tournament/tournamentInstanceModel.js'
 import { migrateGameStateToMultiTournament } from '../features/tournament/tournamentStateMigration.js'
+import { migrateGameStateQuestionLibrary } from '../features/questionLibrary/migrateQuestionLibrary.js'
+import { normalizeQuestionLibrary } from '../features/questionLibrary/questionLibraryModel.js'
 import { TOURNAMENT_INSTANCE_DEFS } from '../features/tournament/tournamentRegistry.js'
 import { normalizeTournamentEventSettings } from '../features/tournament/tournamentEventModel.js'
 
@@ -76,6 +78,7 @@ export function createInitialGameState(overrides = {}) {
     scorePresentation: normalizeScorePresentation(null),
     teams: SAMPLE_TEAMS.map((team, index) => normalizeTeam(team, index)),
     roundLibrary: normalizeRoundLibrary(null, EXAMPLE_ROUND_TEMPLATES),
+    questionLibrary: [],
     selectedRoundId: null,
     mediaLibrary: [],
     mediaPlayback: normalizeMediaPlayback(),
@@ -147,6 +150,9 @@ export function normalizeGameState(raw) {
     }),
     teams: normalizeTeamsList(raw.teams, base.teams),
     roundLibrary,
+    questionLibrary: Object.prototype.hasOwnProperty.call(raw, 'questionLibrary')
+      ? normalizeQuestionLibrary(raw.questionLibrary)
+      : base.questionLibrary,
     selectedRoundId,
     mediaLibrary: Object.prototype.hasOwnProperty.call(raw, 'mediaLibrary')
       ? normalizeMediaLibrary(raw.mediaLibrary)
@@ -164,7 +170,8 @@ export function normalizeGameState(raw) {
     updatedAt: raw.updatedAt ?? Date.now(),
   }
 
-  return migrateGameStateToMultiTournament(merged)
+  const withInstances = migrateGameStateToMultiTournament(merged)
+  return migrateGameStateQuestionLibrary(withInstances)
 }
 
 export { SAMPLE_TEAMS }

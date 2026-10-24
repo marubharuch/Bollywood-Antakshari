@@ -402,6 +402,25 @@ html.projector-route-active #root {
   box-sizing: border-box;
 }
 
+.projector-score-presentation-root--standings {
+  justify-content: flex-start;
+  padding-top: clamp(1rem, 4vh, 2.5rem);
+  gap: clamp(0.5rem, 1.5vh, 1rem);
+}
+
+.projector-tournament-standings-title {
+  font-size: clamp(1.1rem, 3.2vw, 2.25rem);
+  letter-spacing: 0.28em;
+  line-height: 1.35;
+  text-shadow: 0 0 24px rgba(251, 191, 36, 0.25);
+}
+
+.projector-tournament-standings-subtitle {
+  font-size: clamp(0.7rem, 1.8vw, 1.05rem);
+  letter-spacing: 0.04em;
+  max-width: 56rem;
+}
+
 .projector-score-presentation-board {
   flex: 1 1 auto;
   min-height: 0;
@@ -411,6 +430,16 @@ html.projector-route-active #root {
   display: flex;
   flex-direction: column;
   justify-content: center;
+}
+
+.projector-score-presentation-root--standings .projector-score-presentation-board {
+  max-width: min(96vw, 72rem);
+  justify-content: flex-start;
+  margin-top: clamp(0.25rem, 1vh, 0.75rem);
+}
+
+.projector-standings-table {
+  table-layout: fixed;
 }
 
 .projector-scoreboard-fit {

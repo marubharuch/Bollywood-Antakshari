@@ -24,7 +24,7 @@ function filterMediaByMainType(mediaLibrary, mainRoundType) {
   })
 }
 
-function QuestionFormFields({
+export function QuestionFormFields({
   mainRoundType,
   nq,
   mediaItem,

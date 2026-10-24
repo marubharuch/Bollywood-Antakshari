@@ -9,15 +9,24 @@ import { normalizeRound } from '../../features/rounds/roundModel.js'
 import { countSelectedQuestions } from '../../features/rounds/roundQuestionModel.js'
 import { validateRoundDraft } from '../../features/rounds/roundValidation.js'
 import { Button } from '../common/Button.jsx'
-import { RoundQuestionEditor } from './RoundQuestionEditor.jsx'
+import { RoundQuestionAssignmentPanel } from '../questionLibrary/RoundQuestionAssignmentPanel.jsx'
 
 const cellInput =
   'w-full min-w-[5rem] rounded border border-slate-600 bg-slate-950 px-1.5 py-1 text-xs text-white'
 
+function assignmentCountForRound(round) {
+  const ids = round?.assignmentQuestionIds
+  if (Array.isArray(ids) && ids.length > 0) return ids.length
+  return countSelectedQuestions(round?.questions)
+}
+
 export function RoundLibraryWorkspace({
   roundLibrary,
+  questionLibrary,
   mediaLibrary,
   onSaveRound,
+  onUpsertQuestionLibraryEntry,
+  onPreviewMedia,
   onDuplicateRound,
   onDeleteRound,
   onCreateDraft,
@@ -62,6 +71,40 @@ export function RoundLibraryWorkspace({
     }
   }
 
+  const persistAssignmentRound = (nextDraft) => {
+    if (!nextDraft?.name?.trim()) return
+    const normalized = normalizeRound({
+      ...nextDraft,
+      questions: [],
+      assignmentQuestionIds: nextDraft.assignmentQuestionIds ?? [],
+      rules: {
+        ...nextDraft.rules,
+        questionCount: (nextDraft.assignmentQuestionIds ?? []).length,
+      },
+    })
+    const validation = validateRoundDraft(normalized, roundLibrary ?? [], questionLibrary ?? [])
+    if (!validation.valid) return
+    const result = onSaveRound(normalized)
+    if (result.success) {
+      setDraft({ ...result.round })
+      questionsSnapshotRef.current = JSON.stringify(result.round.assignmentQuestionIds ?? [])
+    }
+  }
+
+  const handleAssignmentChange = (ids) => {
+    const base = draft ?? (questionDraft ? normalizeRound(questionDraft) : null)
+    if (!base) return
+    const nextDraft = {
+      ...base,
+      assignmentQuestionIds: ids,
+      questions: [],
+      rules: { ...base.rules, questionCount: ids.length },
+    }
+    setDraft(nextDraft)
+    if (!editingId && base.id) setEditingId(base.id)
+    persistAssignmentRound(nextDraft)
+  }
+
   const renderQuestionPanel = (roundKey) => {
     if (questionRoundId !== roundKey || !questionDraft) return null
     if (!mainTypeNeedsQuestionLibrary(questionDraft.mainRoundType)) return null
@@ -69,26 +112,21 @@ export function RoundLibraryWorkspace({
     return (
       <tr key={`${roundKey}-questions`} className="border-t border-slate-700 bg-slate-900/50">
         <td colSpan={7} className="px-3 py-3">
-          <RoundQuestionEditor
-            mainRoundType={activeDraft.mainRoundType}
-            questions={activeDraft.questions}
+          <RoundQuestionAssignmentPanel
+            round={activeDraft}
+            questionLibrary={questionLibrary ?? []}
             mediaLibrary={mediaLibrary}
-            errors={errors}
-            onChange={(questions) => {
-              const selected = countSelectedQuestions(questions)
-              const base = draft ?? { ...questionDraft }
-              const nextDraft = {
-                ...base,
-                questions,
-                rules: { ...base.rules, questionCount: selected },
-              }
-              setDraft(nextDraft)
-              if (!editingId) {
-                setEditingId(activeDraft.id)
-              }
-              persistQuestionsToLibrary(nextDraft)
-            }}
+            onAssignmentChange={handleAssignmentChange}
+            onUpsertLibraryQuestion={onUpsertQuestionLibraryEntry}
+            onPreviewMedia={onPreviewMedia}
+            onNotify={onNotify}
           />
+          {errors?.questionAssignments && (
+            <p className="mt-2 text-xs text-red-300">{errors.questionAssignments}</p>
+          )}
+          {errors?.questionCount && (
+            <p className="mt-2 text-xs text-red-300">{errors.questionCount}</p>
+          )}
         </td>
       </tr>
     )
@@ -135,7 +173,11 @@ export function RoundLibraryWorkspace({
 
   const handleSave = () => {
     const normalized = normalizeRound(draft)
-    const validation = validateRoundDraft(normalized, roundLibrary ?? [])
+    const validation = validateRoundDraft(
+      normalized,
+      roundLibrary ?? [],
+      questionLibrary ?? [],
+    )
     if (!validation.valid) {
       setErrors(validation.errors)
       onNotify?.('Fix validation errors before saving.', 'error')
@@ -273,7 +315,7 @@ export function RoundLibraryWorkspace({
                   </td>
                   <td className="px-2 py-2">
                     {mainTypeNeedsQuestionLibrary(round.mainRoundType)
-                      ? `${countSelectedQuestions(round.questions)}/${round.questions?.length ?? 0}`
+                      ? `${assignmentCountForRound(round)} assigned`
                       : '—'}
                   </td>
                   <td className="px-2 py-2">

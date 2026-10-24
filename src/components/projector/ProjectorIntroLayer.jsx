@@ -12,10 +12,11 @@ import { GrandOpeningIntro } from './intros/GrandOpeningIntro.jsx'
 import { RoundIntro } from './intros/RoundIntro.jsx'
 
 export function ProjectorIntroLayer() {
-  const { state, finishIntroPlayback } = useGameState()
+  const { state, finishIntroPlayback, startGrandOpeningIntroPlayback } = useGameState()
   const presentation = state.presentation
   const intro = presentation?.intro
   const completedTokenRef = useRef(null)
+  const autoStartedGrandTokenRef = useRef(null)
 
   const reducedMotion = useMemo(() => {
     if (typeof window === 'undefined') return false
@@ -39,6 +40,14 @@ export function ProjectorIntroLayer() {
       volume: presentation?.volume ?? 0.75,
     })
   }, [presentation?.soundEnabled, presentation?.volume])
+
+  // Legacy READY state (or admin Stop): auto-start so projector is not stuck on a blank hold frame.
+  useEffect(() => {
+    if (intro?.kind !== INTRO_KIND.GRAND || intro.status !== INTRO_STATUS.READY) return
+    if (!intro.token || autoStartedGrandTokenRef.current === intro.token) return
+    autoStartedGrandTokenRef.current = intro.token
+    startGrandOpeningIntroPlayback()
+  }, [intro?.kind, intro?.status, intro?.token, startGrandOpeningIntroPlayback])
 
   useEffect(() => {
     if (!playing || intro?.kind !== INTRO_KIND.GRAND) return

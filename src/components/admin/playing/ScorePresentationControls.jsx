@@ -9,7 +9,9 @@ export function ScorePresentationControls({ scorePresentation, onNext, onSkip })
 
   return (
     <div className="flex flex-wrap items-center gap-2 rounded-md border border-amber-500/40 bg-amber-950/30 px-2 py-1.5">
-      <span className="text-xs text-amber-100">Score presentation on projector</span>
+      <span className="text-xs text-amber-100">
+        {scorePresentation.phase === 'scoreboard' ? 'Standings on projector' : 'Score presentation on projector'}
+      </span>
       <Button size="sm" variant="gold" onClick={onNext}>
         {label}
       </Button>

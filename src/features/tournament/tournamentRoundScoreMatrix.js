@@ -1,4 +1,21 @@
 import { getTeamRoundScore } from './roundScoreLedger.js'
+import { ROUND_PLAY_STATUS } from './tournamentModel.js'
+
+/** Planned rounds that count as played for standings subtitles. */
+export function listPlayedPlannedRounds(plannedRounds = []) {
+  return plannedRounds.filter(
+    (p) =>
+      p.roundStatus === ROUND_PLAY_STATUS.COMPLETED ||
+      (p.roundStatus === ROUND_PLAY_STATUS.ACTIVE && p.stoppedEarly),
+  )
+}
+
+export function playedRoundsSubtitle(plannedRounds = []) {
+  const labels = listPlayedPlannedRounds(plannedRounds).map(
+    (p) => (p.snapshot?.name ?? 'Round').trim() || 'Round',
+  )
+  return labels.join(' · ')
+}
 
 /**
  * Team × round score grid from per-round ledger (not stale team.score totals).

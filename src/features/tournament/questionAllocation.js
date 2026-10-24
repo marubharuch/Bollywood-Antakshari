@@ -11,10 +11,8 @@ import {
   listInstancesForStageProfile,
 } from './tournamentRegistry.js'
 import { isInstanceActiveForEvent } from './tournamentEventModel.js'
-import {
-  resolveQuestionBankAllocationIds,
-  roundUsesQuestionBank,
-} from '../questionBank/questionBankRound.js'
+import { roundUsesQuestionBank } from '../questionBank/questionBankRound.js'
+import { resolveBankRoundAllocationIds } from './instanceQuestionAllocation.js'
 
 function shuffleIds(ids) {
   const copy = [...ids]
@@ -112,6 +110,7 @@ export function allocateQuestionsForInstance(
   targetInstanceId,
   options = {},
   eventSettings = null,
+  questionLibrary = [],
 ) {
   const def = getTournamentInstanceDef(targetInstanceId)
   if (!def) {
@@ -148,13 +147,13 @@ export function allocateQuestionsForInstance(
     if (roundUsesQuestionBank(round)) {
       const bundle = instances?.[targetInstanceId]
       const selection = bundle?.questionBankSelections?.[slot.libraryRoundId]
-      const pick = resolveQuestionBankAllocationIds(
+      const pick = resolveBankRoundAllocationIds(
         round,
         selection,
         need,
         usedWordKeysForShow,
       )
-      const eligibleBank = eligibleQuestionsForRound(round)
+      const eligibleBank = eligibleQuestionsForRound(round, questionLibrary)
       if (pick.length < need && !options.allowReuse) {
         shortages.push({
           libraryRoundId: slot.libraryRoundId,
@@ -180,7 +179,7 @@ export function allocateQuestionsForInstance(
       }
       continue
     }
-    const eligible = eligibleQuestionsForRound(round)
+    const eligible = eligibleQuestionsForRound(round, questionLibrary)
     const eligibleIds = eligible.map((q) => q.id)
     const usedSet = used.get(slot.libraryRoundId) ?? new Set()
     const isWordRound = resolveMainRoundType(round) === MAIN_ROUND_TYPE.WORD

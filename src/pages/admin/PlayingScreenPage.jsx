@@ -357,7 +357,8 @@ export function PlayingScreenPage({ embedded = false }) {
               <div>
                 <p className="text-sm font-semibold text-amber-100">Grand opening intro</p>
                 <p className="text-xs text-slate-400">
-                  Projector shows the intro screen until you start playback.
+                  Grand opening plays on the projector when the tournament starts. Use Stop to
+                  pause, or Replay to run it again.
                 </p>
               </div>
               <GrandIntroControls

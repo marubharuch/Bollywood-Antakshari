@@ -103,6 +103,22 @@ export function getSelectedRoundQuestions(questions) {
     .sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0))
 }
 
+
+/** Ordered play ids for a round plan.
+ * An explicitly provided array is authoritative, including an empty array.
+ * Legacy questions are used only when assignmentQuestionIds is absent.
+ */
+export function normalizeAssignmentQuestionIds(rawIds, questions) {
+  if (Array.isArray(rawIds)) {
+    return rawIds
+      .filter((id) => typeof id === 'string' && id.trim())
+      .map((id) => id.trim())
+  }
+
+  return getSelectedRoundQuestions(questions).map((q) => q.id)
+}
+
+
 /**
  * Playable question count for a round snapshot (matches buildQuestionQueue).
  * @param {object | null | undefined} round
