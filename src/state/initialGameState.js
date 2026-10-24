@@ -6,7 +6,35 @@ import {
   EXAMPLE_ROUND_TEMPLATES,
   normalizeRoundLibrary,
 } from '../features/rounds/roundModel.js'
+import { applyHindiWordLibraryToRoundLibrary } from '../features/rounds/hindiWordLibraryInstall.js'
+import { applyQuestionBankRoundsToRoundLibrary } from '../features/questionBank/questionBankRoundInstall.js'
+import {
+  normalizeBuzzer,
+  normalizeBuzzerSystem,
+} from '../features/buzzer/buzzerModel.js'
+import {
+  normalizePlaySession,
+  normalizePlayTimer,
+  normalizeTournament,
+  normalizeTournamentPlans,
+  upsertTournamentPlan,
+} from '../features/tournament/tournamentModel.js'
+import { normalizePresentation } from '../features/presentation/introModel.js'
+import { normalizeScoreDisplay } from '../features/presentation/scoreDisplayModel.js'
+import {
+  isScoreAnnouncementActive,
+  normalizeScoreAnnouncement,
+} from '../features/presentation/scoreAnnouncementModel.js'
+import { normalizeScorePresentation } from '../features/presentation/scorePresentationModel.js'
 import { normalizeTeam, normalizeTeamsList } from '../features/tournament/teamModel.js'
+import { normalizeStageProfiles } from '../features/tournament/stageProfileModel.js'
+import {
+  createDefaultTournamentInstancesMap,
+  normalizeTournamentInstances,
+} from '../features/tournament/tournamentInstanceModel.js'
+import { migrateGameStateToMultiTournament } from '../features/tournament/tournamentStateMigration.js'
+import { TOURNAMENT_INSTANCE_DEFS } from '../features/tournament/tournamentRegistry.js'
+import { normalizeTournamentEventSettings } from '../features/tournament/tournamentEventModel.js'
 
 /** @typedef {'idle' | 'demo' | 'live' | 'paused'} EventStatus */
 /** @typedef {'idle' | 'ready' | 'active' | 'locked'} BuzzerStatus */
@@ -32,12 +60,20 @@ export function createInitialGameState(overrides = {}) {
       hiddenAnswer: 'Mere Sapno Ki Rani — Aradhana (1969)',
       answerRevealed: false,
     },
-    buzzer: {
-      status: 'idle',
-      announcement: null,
-      teamId: null,
-      teamName: null,
-    },
+    buzzer: normalizeBuzzer(null),
+    buzzerSystem: normalizeBuzzerSystem(null),
+    tournament: normalizeTournament(null),
+    activeTournamentInstanceId: TOURNAMENT_INSTANCE_DEFS[0].id,
+    stageProfiles: normalizeStageProfiles(null),
+    tournamentInstances: createDefaultTournamentInstancesMap(),
+    tournamentEventSettings: normalizeTournamentEventSettings(null),
+    tournamentPlans: [],
+    playSession: normalizePlaySession(null),
+    playTimer: normalizePlayTimer(null),
+    presentation: normalizePresentation(null),
+    scoreDisplay: normalizeScoreDisplay(null),
+    scoreAnnouncement: null,
+    scorePresentation: normalizeScorePresentation(null),
     teams: SAMPLE_TEAMS.map((team, index) => normalizeTeam(team, index)),
     roundLibrary: normalizeRoundLibrary(null, EXAMPLE_ROUND_TEMPLATES),
     selectedRoundId: null,
@@ -61,9 +97,11 @@ export function normalizeGameState(raw) {
   }
 
   const hasRoundLibrary = Object.prototype.hasOwnProperty.call(raw, 'roundLibrary')
-  const roundLibrary = hasRoundLibrary
+  const roundLibraryBase = hasRoundLibrary
     ? normalizeRoundLibrary(raw.roundLibrary, [])
     : normalizeRoundLibrary(null, EXAMPLE_ROUND_TEMPLATES)
+  let roundLibrary = applyHindiWordLibraryToRoundLibrary(roundLibraryBase).roundLibrary
+  roundLibrary = applyQuestionBankRoundsToRoundLibrary(roundLibrary).roundLibrary
 
   let selectedRoundId =
     typeof raw.selectedRoundId === 'string' ? raw.selectedRoundId : null
@@ -71,11 +109,42 @@ export function normalizeGameState(raw) {
     selectedRoundId = null
   }
 
-  return {
+  const merged = {
     ...base,
     ...raw,
     question: { ...base.question, ...(raw.question ?? {}) },
-    buzzer: { ...base.buzzer, ...(raw.buzzer ?? {}) },
+    buzzer: normalizeBuzzer({ ...base.buzzer, ...(raw.buzzer ?? {}) }),
+    buzzerSystem: normalizeBuzzerSystem({
+      ...base.buzzerSystem,
+      ...(raw.buzzerSystem ?? {}),
+    }),
+    tournament: normalizeTournament({ ...base.tournament, ...(raw.tournament ?? {}) }),
+    tournamentPlans: (() => {
+      const plans = normalizeTournamentPlans(raw.tournamentPlans)
+      const t = normalizeTournament({ ...base.tournament, ...(raw.tournament ?? {}) })
+      if (!plans.length && t.plannedRounds?.length) {
+        return upsertTournamentPlan([], t)
+      }
+      return plans.length ? plans : upsertTournamentPlan([], t)
+    })(),
+    playSession: normalizePlaySession({ ...base.playSession, ...(raw.playSession ?? {}) }),
+    playTimer: normalizePlayTimer({ ...base.playTimer, ...(raw.playTimer ?? {}) }),
+    presentation: normalizePresentation({
+      ...base.presentation,
+      ...(raw.presentation ?? {}),
+    }),
+    scoreDisplay: normalizeScoreDisplay({
+      ...base.scoreDisplay,
+      ...(raw.scoreDisplay ?? {}),
+    }),
+    scoreAnnouncement: (() => {
+      const ann = normalizeScoreAnnouncement(raw.scoreAnnouncement)
+      return isScoreAnnouncementActive(ann) ? ann : null
+    })(),
+    scorePresentation: normalizeScorePresentation({
+      ...base.scorePresentation,
+      ...(raw.scorePresentation ?? {}),
+    }),
     teams: normalizeTeamsList(raw.teams, base.teams),
     roundLibrary,
     selectedRoundId,
@@ -83,8 +152,19 @@ export function normalizeGameState(raw) {
       ? normalizeMediaLibrary(raw.mediaLibrary)
       : base.mediaLibrary,
     mediaPlayback: normalizeMediaPlayback(raw.mediaPlayback),
+    stageProfiles: normalizeStageProfiles(raw.stageProfiles),
+    tournamentInstances: normalizeTournamentInstances(raw.tournamentInstances),
+    activeTournamentInstanceId:
+      typeof raw.activeTournamentInstanceId === 'string'
+        ? raw.activeTournamentInstanceId
+        : base.activeTournamentInstanceId,
+    tournamentEventSettings: normalizeTournamentEventSettings(
+      raw.tournamentEventSettings ?? base.tournamentEventSettings,
+    ),
     updatedAt: raw.updatedAt ?? Date.now(),
   }
+
+  return migrateGameStateToMultiTournament(merged)
 }
 
 export { SAMPLE_TEAMS }

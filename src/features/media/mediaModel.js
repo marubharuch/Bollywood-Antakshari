@@ -15,11 +15,18 @@ export function createMediaId() {
 
 export function detectMediaType(file) {
   const mime = file?.type ?? ''
-  if (mime.startsWith('video/') || /\.mp4$/i.test(file?.name ?? '')) {
+  const name = file?.name ?? ''
+  if (mime.startsWith('video/') || /\.mp4$/i.test(name)) {
     return 'video'
   }
-  if (mime.startsWith('audio/') || /\.mp3$/i.test(file?.name ?? '')) {
+  if (mime.startsWith('audio/') || /\.mp3$/i.test(name)) {
     return 'audio'
+  }
+  if (mime.startsWith('image/') || /\.(png|jpe?g|gif|webp)$/i.test(name)) {
+    return 'image'
+  }
+  if (mime.startsWith('text/') || /\.(txt|md)$/i.test(name)) {
+    return 'text'
   }
   return 'audio'
 }
@@ -47,7 +54,9 @@ export function normalizeMediaItem(raw) {
     originalFileName:
       typeof raw.originalFileName === 'string' ? raw.originalFileName : 'file',
     mimeType: typeof raw.mimeType === 'string' ? raw.mimeType : '',
-    mediaType: raw.mediaType === 'video' ? 'video' : 'audio',
+    mediaType: ['video', 'audio', 'image', 'text'].includes(raw.mediaType)
+      ? raw.mediaType
+      : 'audio',
     sizeBytes:
       typeof raw.sizeBytes === 'number' && raw.sizeBytes >= 0 ? raw.sizeBytes : 0,
     category:
@@ -84,8 +93,13 @@ export const DEFAULT_MEDIA_PLAYBACK = {
   showVideoControls: false,
   hideTitleOnProjector: false,
   hideAnswerOnProjector: false,
+  /** Projector video element muted (does not affect intro/buzzer). */
+  videoMuted: false,
+  videoAutoplaySoundBlocked: false,
   error: null,
   syncSeq: 0,
+  segmentStart: null,
+  segmentEnd: null,
 }
 
 export function normalizeMediaPlayback(raw) {
@@ -108,6 +122,19 @@ export function normalizeMediaPlayback(raw) {
       ? raw.status
       : 'idle',
     playbackMode: raw.playbackMode === 'video' ? 'video' : 'audio',
+    showVideoOnProjector:
+      typeof raw.showVideoOnProjector === 'boolean'
+        ? raw.showVideoOnProjector
+        : raw.playbackMode === 'video',
+    showVideoControls: Boolean(raw.showVideoControls),
+    hideTitleOnProjector: Boolean(raw.hideTitleOnProjector),
+    hideAnswerOnProjector: Boolean(raw.hideAnswerOnProjector),
+    videoMuted: Boolean(raw.videoMuted),
+    videoAutoplaySoundBlocked: Boolean(raw.videoAutoplaySoundBlocked),
+    segmentStart:
+      typeof raw.segmentStart === 'number' && raw.segmentStart >= 0 ? raw.segmentStart : null,
+    segmentEnd:
+      typeof raw.segmentEnd === 'number' && raw.segmentEnd >= 0 ? raw.segmentEnd : null,
   }
 }
 

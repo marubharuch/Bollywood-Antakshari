@@ -6,6 +6,7 @@ import { formatFileSize, MEDIA_CATEGORIES } from '../../features/media/mediaMode
 import { Button } from '../common/Button.jsx'
 import { Badge } from '../common/Badge.jsx'
 import { InlineAlert } from '../common/InlineAlert.jsx'
+import { MediaPreviewModal } from './MediaPreviewModal.jsx'
 
 export function MusicLibraryPanel({
   mediaLibrary,
@@ -25,11 +26,11 @@ export function MusicLibraryPanel({
   const [importStatus, setImportStatus] = useState(null)
   const [externalUrl, setExternalUrl] = useState('')
   const [externalTitle, setExternalTitle] = useState('')
+  const [previewItem, setPreviewItem] = useState(null)
 
   const filtered = useMemo(() => {
     let list = mediaLibrary ?? []
-    if (typeFilter === 'audio') list = list.filter((m) => m.mediaType === 'audio')
-    if (typeFilter === 'video') list = list.filter((m) => m.mediaType === 'video')
+    if (typeFilter !== 'all') list = list.filter((m) => m.mediaType === typeFilter)
     const q = search.trim().toLowerCase()
     if (q) {
       list = list.filter(
@@ -98,14 +99,14 @@ export function MusicLibraryPanel({
     <div className="space-y-3">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-white">Music library</h2>
+          <h2 className="text-sm font-semibold text-white">Media library</h2>
           <p className="text-xs text-slate-500">{count} item(s) · local IndexedDB</p>
         </div>
         <div className="flex flex-wrap gap-1">
           <input
             ref={fileInputRef}
             type="file"
-            accept=".mp3,.mp4,audio/mpeg,video/mp4"
+            accept=".mp3,.mp4,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,audio/*,video/mp4,image/*,text/plain"
             multiple
             className="hidden"
             onChange={(e) => {
@@ -116,7 +117,7 @@ export function MusicLibraryPanel({
           <input
             ref={folderInputRef}
             type="file"
-            accept=".mp3,.mp4,audio/mpeg,video/mp4"
+            accept=".mp3,.mp4,.png,.jpg,.jpeg,.gif,.webp,.txt,.md,audio/*,video/mp4,image/*,text/plain"
             multiple
             className="hidden"
             {...{ webkitdirectory: '' }}
@@ -203,6 +204,8 @@ export function MusicLibraryPanel({
           <option value="all">All types</option>
           <option value="audio">Audio</option>
           <option value="video">Video</option>
+          <option value="image">Image</option>
+          <option value="text">Text</option>
         </select>
       </div>
 
@@ -252,6 +255,9 @@ export function MusicLibraryPanel({
                   )}
                 </div>
                 <div className="flex flex-col gap-1">
+                  <Button size="sm" variant="ghost" onClick={() => setPreviewItem(item)}>
+                    Preview
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -310,6 +316,8 @@ export function MusicLibraryPanel({
           ))}
         </ul>
       )}
+
+      <MediaPreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
     </div>
   )
 }

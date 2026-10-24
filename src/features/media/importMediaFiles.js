@@ -29,19 +29,21 @@ export async function importMediaFile(file, options = {}) {
     existingItems.map((m) => (m.originalFileName ?? '').toLowerCase()),
   )
 
-  const isMp3 = /\.mp3$/i.test(file.name) || file.type === 'audio/mpeg'
-  const isMp4 = /\.mp4$/i.test(file.name) || file.type === 'video/mp4'
-  if (!isMp3 && !isMp4) {
+  const mediaType = detectMediaType(file)
+  const allowed =
+    mediaType === 'audio' ||
+    mediaType === 'video' ||
+    mediaType === 'image' ||
+    mediaType === 'text'
+  if (!allowed) {
     return {
       success: false,
-      error: `${file.name}: only MP3 and MP4 files are supported.`,
+      error: `${file.name}: unsupported type (use MP3, MP4, image, or text).`,
     }
   }
 
   const id = createMediaId()
   const originalFileName = uniqueFileLabel(file.name, usedNames)
-  const mediaType = detectMediaType(file)
-
   options.onProgress?.(`Storing ${originalFileName}…`)
 
   try {

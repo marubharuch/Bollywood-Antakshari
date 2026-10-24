@@ -1,6 +1,6 @@
 # Bollywood Antakshari Tournament Web App
 
-Phase 1: Admin panel, projector display, demo scoring, and cross-tab sync (no backend).
+React/Vite tournament app: admin, projector, teams, rounds, media library, offline sync, and an optional **local buzzer server** (Phase 6).
 
 ## Local development
 
@@ -27,12 +27,50 @@ Deploy the `dist` folder to GitHub Pages. Hash routing (`#/projector`) avoids se
 
 | Hash route       | Purpose              |
 |------------------|----------------------|
-| `#/` or `#/admin` | Admin control panel |
+| `#/admin/config` | Game configuration   |
+| `#/admin/play`   | Playing screen (anchor) |
+| `#/rounds`       | Round library        |
+| `#/media`        | Media library        |
 | `#/projector`    | Audience display     |
 | `#/split-test`   | Split-screen test    |
-| `#/teams`        | Team management      |
-| `#/rounds`       | Round library        |
-| `#/media`        | Music library        |
+| `#/teams`        | Redirects to config  |
+| `#/buzzer-mobile` | Team phone buzzer (query `?server=http://IP:3847`) |
+
+## Buzzer system (Phase 6)
+
+The quiz works **without** the buzzer server (manual scoring, demo buzzer simulation). For live races:
+
+1. **Install** root and server deps: `npm install` and `npm run buzzer-server:install`
+2. **Start buzzer server** (laptop): `npm run buzzer-server:start`
+3. **Start frontend**: `npm run dev`
+4. In **Admin**, turn **Buzzer ON**, set server URL to `http://<laptop-ip>:3847`, confirm **Server connected**
+5. Open **Projector**; use **Next Question / Arm**, then phones buzz via QR/link
+
+Optional env for default server URL in the built app:
+
+```bash
+set VITE_BUZZER_SERVER_URL=http://192.168.1.10:3847
+npm run dev
+```
+
+### Find laptop IP (Windows)
+
+```text
+ipconfig
+```
+
+Use the **IPv4 Address** of your Wi‑Fi or hotspot adapter (e.g. `192.168.x.x`). It may change when you reconnect — update Admin and refresh phone links.
+
+### Troubleshooting
+
+| Issue | What to try |
+|-------|-------------|
+| Admin shows server error | Start `npm run buzzer-server:start`; check port 3847 not in use |
+| Phone cannot connect | Same Wi‑Fi/hotspot; use laptop IP not `localhost`; firewall allow 3847 |
+| QR opens wrong host | Set correct server URL in Admin first — QR encodes that URL |
+| GitHub Pages only | Static site works; **run buzzer server locally** on quiz night |
+
+Details: [`buzzer-server/README.md`](buzzer-server/README.md).
 
 ## Offline use (Phase 5)
 

@@ -1,3 +1,12 @@
+import {
+  MAIN_ROUND_TYPE,
+  normalizeMainRoundType,
+  playTypeFromMainAndBuzzer,
+  syncRulesForMainType,
+} from './mainRoundType.js'
+import { ROUND_PLAY_TYPE } from './roundPlayType.js'
+import { countSelectedQuestions, normalizeRoundQuestions } from './roundQuestionModel.js'
+
 /** @typedef {import('./roundTypes.js').RoundDefinition} RoundDefinition */
 
 export const ROUND_CATEGORIES = [
@@ -48,9 +57,43 @@ export function normalizeRound(raw = {}) {
     timeLimitSeconds = DEFAULT_TIMING.timeLimitSeconds
   }
 
+  const rulesDraft = {
+    buzzerEnabled: Boolean(raw.rules?.buzzerEnabled ?? DEFAULT_RULES.buzzerEnabled),
+    mediaRequired: Boolean(raw.rules?.mediaRequired ?? DEFAULT_RULES.mediaRequired),
+    questionCount: clampInt(raw.rules?.questionCount, 0, 999, DEFAULT_RULES.questionCount),
+    maxAttemptsPerTeam: clampInt(
+      raw.rules?.maxAttemptsPerTeam,
+      1,
+      99,
+      DEFAULT_RULES.maxAttemptsPerTeam,
+    ),
+  }
+  const mainRoundType = normalizeMainRoundType(raw.mainRoundType, {
+    ...raw,
+    rules: rulesDraft,
+  })
+  let rules = syncRulesForMainType(mainRoundType, rulesDraft)
+  if (mainRoundType === MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) {
+    rules = { ...rules, buzzerEnabled: Boolean(raw.rules?.buzzerEnabled ?? false) }
+  }
+  const playType = playTypeFromMainAndBuzzer(mainRoundType, rules.buzzerEnabled)
+  const questions = normalizeRoundQuestions(raw.questions)
+  if (questions.length > 0 && mainRoundType !== MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) {
+    const selected = countSelectedQuestions(questions)
+    rules = { ...rules, questionCount: selected }
+  }
+
   return {
     id:
       typeof raw.id === 'string' && raw.id.trim() ? raw.id.trim() : createRoundId(),
+    mainRoundType,
+    playType,
+    customRule: typeof raw.customRule === 'string' ? raw.customRule.trim() : '',
+    questionBankId:
+      typeof raw.questionBankId === 'string' && raw.questionBankId.trim()
+        ? raw.questionBankId.trim()
+        : null,
+    questions,
     name: typeof raw.name === 'string' ? raw.name.trim() : 'Untitled Round',
     description: typeof raw.description === 'string' ? raw.description.trim() : '',
     instructions:
@@ -68,17 +111,7 @@ export function normalizeRound(raw = {}) {
       useTimer,
       timeLimitSeconds,
     },
-    rules: {
-      buzzerEnabled: Boolean(raw.rules?.buzzerEnabled ?? DEFAULT_RULES.buzzerEnabled),
-      mediaRequired: Boolean(raw.rules?.mediaRequired ?? DEFAULT_RULES.mediaRequired),
-      questionCount: clampInt(raw.rules?.questionCount, 1, 999, DEFAULT_RULES.questionCount),
-      maxAttemptsPerTeam: clampInt(
-        raw.rules?.maxAttemptsPerTeam,
-        1,
-        99,
-        DEFAULT_RULES.maxAttemptsPerTeam,
-      ),
-    },
+    rules,
     active: raw.active !== false,
     isTemplate: Boolean(raw.isTemplate),
     createdAt: typeof raw.createdAt === 'number' ? raw.createdAt : now,
@@ -111,8 +144,20 @@ export function createEmptyRoundDraft() {
     category: 'custom',
     active: true,
     isTemplate: false,
+    mainRoundType: MAIN_ROUND_TYPE.WORD,
+    playType: ROUND_PLAY_TYPE.NON_BUZZER_QUESTION,
+    questions: [],
+    customRule: '',
   })
 }
+
+export { ROUND_PLAY_TYPE, resolveRoundPlayType, roundPlayTypeLabel } from './roundPlayType.js'
+export {
+  MAIN_ROUND_TYPE,
+  mainRoundTypeLabel,
+  mainTypeNeedsQuestionLibrary,
+  resolveMainRoundType,
+} from './mainRoundType.js'
 
 /** Small starter set — library model supports ~65+ entries later. */
 export const EXAMPLE_ROUND_TEMPLATES = [

@@ -1,4 +1,9 @@
-import { ROUND_CATEGORIES } from './roundModel.js'
+import {
+  MAIN_ROUND_TYPE,
+  mainTypeNeedsQuestionLibrary,
+  resolveMainRoundType,
+} from './mainRoundType.js'
+import { getSelectedRoundQuestions, validateRoundQuestion } from './roundQuestionModel.js'
 
 /**
  * @param {object} draft
@@ -22,12 +27,7 @@ export function validateRoundDraft(draft, library = []) {
     }
   }
 
-  const category = (draft.category ?? '').trim()
-  if (!category) {
-    errors.category = 'Choose a category.'
-  } else if (!ROUND_CATEGORIES.some((c) => c.id === category)) {
-    errors.category = 'Invalid category.'
-  }
+  const mainType = resolveMainRoundType(draft)
 
   const correct = Number(draft.scoring?.correctPoints)
   if (Number.isNaN(correct) || correct < 0 || correct > 999) {
@@ -52,9 +52,35 @@ export function validateRoundDraft(draft, library = []) {
     }
   }
 
-  const qCount = Number(draft.rules?.questionCount)
-  if (Number.isNaN(qCount) || qCount < 1 || qCount > 999) {
-    errors.questionCount = 'Question count must be 1–999.'
+  if (mainTypeNeedsQuestionLibrary(mainType)) {
+    const questions = Array.isArray(draft.questions) ? draft.questions : []
+    const selected = getSelectedRoundQuestions(questions)
+    const selectedCount = selected.length
+
+    if (selectedCount < 1) {
+      errors.questionCount =
+        'Select at least one question for this round (use the checkbox in the question library).'
+    } else if (selectedCount > 999) {
+      errors.questionCount = 'At most 999 questions can be selected per round.'
+    }
+
+    const qCount = Number(draft.rules?.questionCount)
+    if (!Number.isNaN(qCount) && selectedCount > 0 && qCount !== selectedCount) {
+      errors.questionCount = `Selected question count (${selectedCount}) does not match round settings.`
+    }
+
+    selected.forEach((q, i) => {
+      const result = validateRoundQuestion(q, mainType, `Question ${i + 1}`)
+      if (!result.valid) {
+        const key = Object.keys(result.errors)[0]
+        errors[`question_${q.id}_${key}`] = result.errors[key]
+      }
+    })
+  } else {
+    const qCount = Number(draft.rules?.questionCount)
+    if (!Number.isNaN(qCount) && qCount !== 0) {
+      errors.questionCount = 'Simple Antakshari rounds do not use a question library.'
+    }
   }
 
   const attempts = Number(draft.rules?.maxAttemptsPerTeam)
@@ -64,4 +90,29 @@ export function validateRoundDraft(draft, library = []) {
 
   const valid = Object.keys(errors).length === 0
   return { valid, errors, name: valid ? name : undefined }
+}
+
+/**
+ * @param {object} round snapshot or library round
+ */
+export function validateRoundHasPlayableQuestions(round) {
+  const mainType = resolveMainRoundType(round)
+  if (mainType === MAIN_ROUND_TYPE.SIMPLE_ANTAKSHARI) {
+    return { valid: true }
+  }
+  const selected = getSelectedRoundQuestions(round?.questions)
+  if (selected.length < 1) {
+    return {
+      valid: false,
+      error:
+        'No questions are selected for this round. Open Round Library, check at least one question, and save the round.',
+    }
+  }
+  for (let i = 0; i < selected.length; i += 1) {
+    const result = validateRoundQuestion(selected[i], mainType, `Question ${i + 1}`)
+    if (!result.valid) {
+      return { valid: false, error: result.firstError }
+    }
+  }
+  return { valid: true }
 }

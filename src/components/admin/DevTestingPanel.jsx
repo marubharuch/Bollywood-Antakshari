@@ -8,7 +8,10 @@ export function DevTestingPanel({
   onToggleSimulation,
   onToggleDemo,
   onResetDemo,
+  tournamentLive = false,
 }) {
+  const blockDemoStart = tournamentLive && !demoActive
+
   return (
     <section
       className="flex flex-wrap items-center gap-2 rounded-lg border border-violet-600/40 bg-violet-950/25 px-2.5 py-2"
@@ -16,12 +19,23 @@ export function DevTestingPanel({
     >
       <Badge tone="dev" className="shrink-0">Dev</Badge>
 
+      {tournamentLive && !demoActive && (
+        <span className="text-[11px] text-amber-200/90">
+          Tournament running — use real play controls; demo is disabled here.
+        </span>
+      )}
+
       <Button
         size="sm"
         variant={simulationMode ? 'primary' : 'outline'}
         pressed={simulationMode}
         onClick={onToggleSimulation}
-        title="Sample buzzer simulation while demo runs"
+        disabled={blockDemoStart}
+        title={
+          blockDemoStart
+            ? 'Not available during a live tournament'
+            : 'Auto sample buzzer hits while demo mode is on'
+        }
       >
         Simulation {simulationMode ? 'ON' : 'OFF'}
       </Button>
@@ -31,22 +45,29 @@ export function DevTestingPanel({
         variant={demoActive ? 'secondary' : 'gold'}
         pressed={demoActive}
         onClick={onToggleDemo}
+        disabled={blockDemoStart}
+        title={blockDemoStart ? 'End or avoid live tournament before demo' : undefined}
       >
         {demoActive ? 'Stop Demo' : 'Start Demo'}
       </Button>
 
-      <Button size="sm" variant="outline" onClick={onResetDemo}>
+      <Button
+        size="sm"
+        variant="outline"
+        onClick={onResetDemo}
+        disabled={tournamentLive && !demoActive}
+        title={
+          tournamentLive && !demoActive
+            ? 'Unavailable during live tournament'
+            : 'Reset play state to sample data (keeps teams and libraries)'
+        }
+      >
         Reset Demo
       </Button>
 
       <Link to="/split-test" className="inline-flex">
-        <Button size="sm" variant="ghost">Split-Screen</Button>
+        <Button size="sm" variant="ghost">Split-Screen Test</Button>
       </Link>
-
-      <span className="hidden text-xs text-violet-200/80 sm:inline">
-        {demoActive ? 'Demo live · sync active' : 'Demo idle'}
-        {simulationMode ? ' · simulation on' : ''}
-      </span>
     </section>
   )
 }

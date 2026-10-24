@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Button } from '../common/Button.jsx'
 import { Badge } from '../common/Badge.jsx'
 import { RoundEditorForm } from './RoundEditorForm.jsx'
@@ -16,6 +16,8 @@ export function RoundLibraryPanel({
   onSelectRound,
   onCreateDraft,
   onNotify,
+  editTarget = null,
+  onEditConsumed,
 }) {
   const [editingId, setEditingId] = useState(null)
   const [draft, setDraft] = useState(null)
@@ -40,6 +42,13 @@ export function RoundLibraryPanel({
     setEditingId(round.id)
     setErrors(null)
   }
+
+  useEffect(() => {
+    if (editTarget?.id) {
+      startEdit(editTarget)
+      onEditConsumed?.()
+    }
+  }, [editTarget?.id])
 
   const cancelEdit = () => {
     setDraft(null)

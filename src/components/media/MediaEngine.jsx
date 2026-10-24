@@ -5,6 +5,9 @@ export const MediaEngine = memo(function MediaEngine({
   item,
   onTimeUpdate,
   onLoadedMetadata,
+  onCanPlay,
+  onError,
+  onEmptied,
   showVideo = false,
   className = '',
   controls = false,
@@ -22,6 +25,10 @@ export const MediaEngine = memo(function MediaEngine({
         controls={controls}
         onTimeUpdate={onTimeUpdate}
         onLoadedMetadata={onLoadedMetadata}
+        onCanPlay={onCanPlay}
+        onError={onError}
+        onEmptied={onEmptied}
+        style={hiddenAudioOnly ? undefined : { objectFit: 'contain' }}
       />
     )
   }

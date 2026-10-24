@@ -5,33 +5,55 @@ const DEFAULT_QUESTION = {
   answerRevealed: false,
 }
 
-export function ProjectorQuestion({ question, hideAnswer = false, hidePrompt = false }) {
+export function hasProjectorQuestionContent(question, { hideAnswer = false, hidePrompt = false } = {}) {
   const q = question ?? DEFAULT_QUESTION
+  const showAnswer =
+    !hideAnswer && q.answerRevealed && typeof q.hiddenAnswer === 'string' && q.hiddenAnswer.trim()
+  const showPrompt = !hidePrompt && typeof q.prompt === 'string' && q.prompt.trim()
+  return Boolean(showAnswer || showPrompt)
+}
+
+export function ProjectorQuestion({
+  question,
+  hideAnswer = false,
+  hidePrompt = false,
+  compact = false,
+}) {
+  const q = question ?? DEFAULT_QUESTION
+  const showAnswer =
+    !hideAnswer && q.answerRevealed && typeof q.hiddenAnswer === 'string' && q.hiddenAnswer.trim()
+  const showPrompt = !hidePrompt && typeof q.prompt === 'string' && q.prompt.trim()
+
+  if (!showAnswer && !showPrompt) {
+    return null
+  }
+
+  const pad = compact ? 'px-4 py-3' : 'px-8 py-10'
 
   return (
-    <div className="rounded-2xl border border-white/10 bg-black/40 px-8 py-10 text-center backdrop-blur-sm">
-      {!hidePrompt && (
-        <p className="text-lg uppercase tracking-[0.2em] text-slate-400 md:text-xl">
+    <div
+      className={`h-full rounded-xl border border-white/10 bg-black/40 text-center backdrop-blur-sm ${pad}`}
+    >
+      {showPrompt && (
+        <p
+          className="text-slate-400 uppercase tracking-[0.15em] break-words"
+          style={{ fontSize: compact ? 'clamp(0.7rem, 1.8vh, 1rem)' : 'clamp(0.9rem, 2.2vw, 1.25rem)' }}
+        >
           {q.prompt}
         </p>
       )}
-      <p
-        className="mt-6 bg-gradient-to-b from-[var(--color-gold)] to-amber-600 bg-clip-text text-7xl font-black text-transparent md:text-8xl"
-        aria-label={`Letter ${q.letter}`}
-      >
-        {q.letter}
-      </p>
-      <div className="mx-auto mt-10 max-w-2xl border-t border-white/10 pt-8">
-        {!hideAnswer && q.answerRevealed ? (
-          <p className="animate-buzzer-in text-2xl font-semibold text-emerald-300 md:text-3xl">
-            {q.hiddenAnswer}
-          </p>
-        ) : (
-          <p className="text-xl italic text-slate-500 md:text-2xl">
-            Answer hidden
-          </p>
-        )}
-      </div>
+      {showAnswer && (
+        <p
+          className={`animate-buzzer-in font-semibold text-emerald-300 break-words ${
+            showPrompt ? (compact ? 'mt-2' : 'mt-4') : ''
+          }`}
+          style={{
+            fontSize: compact ? 'clamp(0.9rem, 2.5vh, 1.25rem)' : 'clamp(1.1rem, 3vw, 1.75rem)',
+          }}
+        >
+          {q.hiddenAnswer}
+        </p>
+      )}
     </div>
   )
 }

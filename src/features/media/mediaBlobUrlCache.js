@@ -1,4 +1,5 @@
 import { getMediaBlob } from './mediaDb.js'
+import { mediaDisplayDiag } from './mediaDisplayDiag.js'
 import { revokeObjectUrl } from './objectUrl.js'
 
 /** @type {Map<string, { url: string, sizeBytes: number }>} */
@@ -23,11 +24,19 @@ export async function getCachedObjectUrlForItem(item) {
 
   const record = await getMediaBlob(item.id)
   if (!record?.blob) {
+    mediaDisplayDiag('blob-missing', { mediaId: item.id })
     return { url: null, error: 'Media missing from browser storage.' }
   }
 
+  mediaDisplayDiag('blob-loaded', {
+    mediaId: item.id,
+    sizeBytes: record.blob.size,
+    mimeType: record.blob.type || record.mimeType || 'unknown',
+  })
+
   const url = URL.createObjectURL(record.blob)
   urlByMediaId.set(item.id, { url, sizeBytes: record.blob.size })
+  mediaDisplayDiag('object-url-created', { mediaId: item.id })
   return { url, cached: false }
 }
 

@@ -1,5 +1,10 @@
 import { Button } from '../common/Button.jsx'
-import { ROUND_CATEGORIES } from '../../features/rounds/roundModel.js'
+import {
+  ROUND_CATEGORIES,
+  ROUND_PLAY_TYPE,
+  roundPlayTypeLabel,
+} from '../../features/rounds/roundModel.js'
+import { syncRulesForPlayType } from '../../features/rounds/roundPlayType.js'
 
 const inputClass =
   'mt-0.5 w-full rounded-md border border-slate-600 bg-slate-900 px-2 py-1.5 text-sm text-white focus:border-rose-500 focus:outline-none focus:ring-1 focus:ring-rose-500'
@@ -58,6 +63,26 @@ export function RoundEditorForm({
             maxLength={100}
           />
           {errors?.name && <span className="text-red-300">{errors.name}</span>}
+        </label>
+
+        <label className="text-xs text-slate-400 sm:col-span-2">
+          Round type *
+          <select
+            className={inputClass}
+            value={d.playType ?? ROUND_PLAY_TYPE.NON_BUZZER_QUESTION}
+            onChange={(e) => {
+              const playType = e.target.value
+              onChange({
+                ...d,
+                playType,
+                rules: syncRulesForPlayType(playType, d.rules),
+              })
+            }}
+          >
+            {Object.values(ROUND_PLAY_TYPE).map((id) => (
+              <option key={id} value={id}>{roundPlayTypeLabel(id)}</option>
+            ))}
+          </select>
         </label>
 
         <label className="text-xs text-slate-400 sm:col-span-2">
@@ -157,15 +182,9 @@ export function RoundEditorForm({
           >
             Timer {d.timing?.useTimer ? 'ON' : 'OFF'}
           </Button>
-          <Button
-            type="button"
-            size="sm"
-            variant={d.rules?.buzzerEnabled ? 'primary' : 'outline'}
-            pressed={Boolean(d.rules?.buzzerEnabled)}
-            onClick={() => updateRules('buzzerEnabled', !d.rules?.buzzerEnabled)}
-          >
-            Buzzer {d.rules?.buzzerEnabled ? 'ON' : 'OFF'}
-          </Button>
+          <span className="text-xs text-slate-500 self-center">
+            Buzzer: {d.rules?.buzzerEnabled ? 'ON' : 'OFF'} (set by round type)
+          </span>
           <Button
             type="button"
             size="sm"
